@@ -135,7 +135,7 @@ if __name__ == "__main__":
     for key in config_args.keys():
         if config_args[key] is not None:
             config_yaml[key] = config_args[key]
-    
+
     # 사용되지 않는 정보 삭제 (학습 시에만)
     if config_yaml.predict == False:
         del config_yaml.checkpoint
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     print(OmegaConf.to_yaml(config_yaml))
     
     ######################## W&B
-    if args.wandb:
+    if config_yaml.wandb:
         import wandb
         # wandb.require("core")
         # https://docs.wandb.ai/ref/python/init 참고
@@ -178,5 +178,5 @@ if __name__ == "__main__":
     ######################## MAIN
     main(config_yaml)
 
-    if args.wandb:
+    if config_yaml.wandb:
         wandb.finish()
