@@ -1,0 +1,6 @@
+pandas
+scikit-learn
+transformers==4.55.4
+omegaconf
+wandb
+nltk
