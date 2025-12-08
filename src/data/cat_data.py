@@ -69,9 +69,44 @@ def catboost_data_load(args):
     # 1. 데이터 로드
     users = pd.read_csv(args.dataset.data_path + 'users.csv')
     books = pd.read_csv(args.dataset.data_path + 'books.csv')
+    emb_cols = []   # 임베딩 피쳐 사용시 필요해서 미리 선언, 사용 안해도 빈 리스트라서 문제 없음
     train = pd.read_csv(args.dataset.data_path + 'train_ratings.csv')
     test = pd.read_csv(args.dataset.data_path + 'test_ratings.csv')
     sub = pd.read_csv(args.dataset.data_path + 'sample_submission.csv')
+
+    # 1.1 요약 임베딩 로드 (books와 동일 순서로 정렬 해놨어요~) + 붙여주기~
+    if args.use_summary_feature:
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.decomposition import PCA
+
+        summary_embeddings = np.load(args.dataset.data_path + 'text_vector/summary_embeddings.npy')
+
+        # 결측치 찾기 (summary 있는 책만)
+        has_summary = books['summary'].notna()
+        print(f">>> Summary 있는 책: {has_summary.sum()} / {len(books)} ({has_summary.mean() * 100:.2f}%)")
+
+        # 1단계: summary 있는 것만으로 scaler fit
+        scaler = StandardScaler()
+        scaler.fit(summary_embeddings[has_summary])
+        summary_embeddings_scaled = scaler.transform(summary_embeddings)
+
+        # 2단계: summary 있는 것만으로 PCA fit
+        pca = PCA(n_components=50)
+        pca.fit(summary_embeddings_scaled[has_summary])
+        summary_embeddings_pca = pca.transform(summary_embeddings_scaled)
+
+        print(f">>> Embedding Processing")
+        print(f"원본 차원: {summary_embeddings.shape[1]}")
+        print(f"PCA 후 차원: {summary_embeddings_pca.shape[1]}")
+        print(f"설명 분산 비율: {pca.explained_variance_ratio_.sum():.4f}")
+
+        # DataFrame 변환 후 결측치는 NaN으로
+        embedding_dim = summary_embeddings_pca.shape[1]
+        emb_cols = [f'summary_pca_{i}' for i in range(embedding_dim)]
+        emb_df = pd.DataFrame(summary_embeddings_pca, columns=emb_cols)
+        emb_df.loc[~has_summary] = np.nan  # 결측치는 NaN
+
+        books = pd.concat([books.reset_index(drop=True), emb_df], axis=1)
 
     # 2. 베이스라인 전처리 수행 (context_data.py logic)
     users_, books_ = process_context_data(users, books)
