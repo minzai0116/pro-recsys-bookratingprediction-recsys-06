@@ -1,3 +1,2 @@
 from .trainer import train, test
-from .LGBM import run_lightgbm as lgbm
-from .CatBoost import run_catboost as catboost
+from .sklearn_trainer import train as sklearn_train, test as sklearn_test
