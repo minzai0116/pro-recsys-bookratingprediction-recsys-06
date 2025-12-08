@@ -29,12 +29,6 @@ def process_context_data(users, books):
     books_ = books.copy()
 
     books_['category'] = books_['category'].apply(lambda x: str2list(x)[0] if not pd.isna(x) else np.nan)
-    books_['language'] = books_['language'].fillna(books_['language'].mode()[0])
-    books_['publication_range'] = books_['year_of_publication'].apply(lambda x: x // 10 * 10)
-
-    users_['age'] = users_['age'].fillna(users_['age'].mode()[0])
-    users_['age_range'] = users_['age'].apply(lambda x: x // 10 * 10)
-
     users_['location_list'] = users_['location'].apply(lambda x: split_location(x))
     users_['location_country'] = users_['location_list'].apply(lambda x: x[0])
     users_['location_state'] = users_['location_list'].apply(lambda x: x[1] if len(x) > 1 else np.nan)
@@ -82,12 +76,12 @@ def catboost_data_load(args):
     # 2. 베이스라인 전처리 수행 (context_data.py logic)
     users_, books_ = process_context_data(users, books)
 
-    # 3. 피처 정의 (범주형 vs 숫자형 명확히 구분)
+    # 3. 피처 정의 (범주형 vs 연속형 명확히 구분)
     user_categorical = ['user_id', 'location_country', 'location_state', 'location_city']
-    user_numeric = ['age_range']
+    user_numeric = ['age']
 
     book_categorical = ['isbn', 'book_title', 'book_author', 'publisher', 'language', 'category']
-    book_numeric = ['publication_range']
+    book_numeric = ['year_of_publication']
 
     categorical_cols = user_categorical + book_categorical
     numeric_cols = user_numeric + book_numeric

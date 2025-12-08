@@ -14,7 +14,11 @@ def run_catboost(args, data, setting):
 
     # 1. 데이터 준비
     print(">>> Loading Data...")
-    X_train = data['X_train'][data['field_names']]
+
+    # 모든 피처 리스트 생성
+    all_features = data['categorical_features'] + data['numeric_features']
+
+    X_train = data['X_train'][all_features]
     y_train = data['y_train']
 
     ## validation 데이터가 있는지 확인
@@ -27,27 +31,28 @@ def run_catboost(args, data, setting):
     
     X_test = data['test'][data['field_names']]
 
-    ## 범주형 변수 지정
-    cat_features = data['field_names']
+    ## 범주형 변수만 지정 (숫자형은 제외)
+    cat_features = data['categorical_features']
     print(f">>> Categorical Features: {cat_features}")
-    
+    print(f">>> Numeric Features: {data['numeric_features']}")
+
     # 2. 파라미터 로드
     catboost_params = args.model_args['CatBoost']
 
     # 3. 모델 정의
     model = catboost.CatBoostRegressor(
-        iterations = catboost_params.iterations,
-        learning_rate = catboost_params.learning_rate,
-        depth = catboost_params.depth,
-        cat_features = cat_features,
-        loss_function = catboost_params.loss_function,
-        early_stopping_rounds = catboost_params.early_stopping_rounds,
-        eval_metric = catboost_params.eval_metric,
-        verbose = catboost_params.verbose
+        iterations=catboost_params.iterations,
+        learning_rate=catboost_params.learning_rate,
+        depth=catboost_params.depth,
+        cat_features=cat_features,  # 범주형 변수만 전달
+        loss_function=catboost_params.loss_function,
+        early_stopping_rounds=catboost_params.early_stopping_rounds,
+        eval_metric=catboost_params.eval_metric,
+        verbose=catboost_params.verbose
     )
 
     # 4. 학습
-    print(f">>> Start Training LightGBM (Metric: {catboost_params.eval_metric})")
+    print(f">>> Start Training CatBoost (Metric: {catboost_params.eval_metric})")
     model.fit(
         X_train, y_train,
         eval_set = eval_set,
