@@ -1,0 +1,14 @@
+### macOS ###
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+### CatBoost ###
+catboost_info
+
+### WandB ###
+run-*
+
+### submit ###
+2025*.csv

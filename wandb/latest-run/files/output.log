@@ -1,0 +1,40 @@
+[34m[1mwandb[0m: [33mWARNING[0m The get_url method is deprecated and will be removed in a future release. Please use `run.url` instead.
+--------------- CatBoost Load Data ---------------
+--------------- CatBoost Train/Valid Split ---------------
+-------- CatBoost PROCESSING --------
+>>> Loading Data...
+>>> Categorical Features: ['location_country', 'age_range', 'isbn', 'book_title', 'language', 'publication_range', 'user_id', 'publisher', 'location_city', 'book_author', 'category', 'location_state']
+>>> Start Training LightGBM (Metric: RMSE)
+0:	learn: 2.4204049	test: 2.4029899	best: 2.4029899 (0)	total: 207ms	remaining: 3m 26s
+100:	learn: 2.2076417	test: 2.1508823	best: 2.1508823 (100)	total: 15.2s	remaining: 2m 14s
+200:	learn: 2.2001177	test: 2.1449871	best: 2.1449871 (200)	total: 40.8s	remaining: 2m 42s
+300:	learn: 2.1956176	test: 2.1416589	best: 2.1416589 (300)	total: 1m 8s	remaining: 2m 38s
+400:	learn: 2.1920711	test: 2.1393355	best: 2.1393355 (400)	total: 1m 34s	remaining: 2m 21s
+500:	learn: 2.1892992	test: 2.1378882	best: 2.1378868 (498)	total: 2m 1s	remaining: 2m
+600:	learn: 2.1868374	test: 2.1368647	best: 2.1368608 (599)	total: 2m 29s	remaining: 1m 39s
+700:	learn: 2.1847325	test: 2.1362564	best: 2.1362564 (700)	total: 2m 58s	remaining: 1m 16s
+800:	learn: 2.1828034	test: 2.1356857	best: 2.1356807 (797)	total: 3m 30s	remaining: 52.3s
+900:	learn: 2.1811138	test: 2.1352314	best: 2.1352302 (899)	total: 3m 59s	remaining: 26.3s
+999:	learn: 2.1795657	test: 2.1348774	best: 2.1348685 (997)	total: 4m 26s	remaining: 0us
+
+bestTest = 2.134868517
+bestIteration = 997
+
+Shrink model to first 998 iterations.
+>>> Top 10 Feature Importance
+             feature  importance
+0            user_id    0.143204
+1        book_author    0.016269
+2         book_title    0.008161
+3          publisher    0.003330
+4          age_range    0.000796
+5           category    0.000762
+6      location_city    0.000750
+7   location_country    0.000671
+8  publication_range    0.000649
+9     location_state    0.000373
+>>> Predicting...
+⭐️ >>> Final Validation RMSE: 2.1349
+--------------- SAVE CatBoost PREDICT ---------------
+Save Predict: saved/submit/20251206_070804_CatBoost.csv
+>>> CatBoost Process Finished
