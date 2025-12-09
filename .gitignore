@@ -22,7 +22,7 @@ build/
 *.h5
 *.pth
 *.pt
-data/
+# data/
 dataset/
 saved/
 submit/
@@ -44,6 +44,7 @@ wandb/
 # OS
 .DS_Store
 Thumbs.db
+._*
 
 # 로그
 *.log
