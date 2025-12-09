@@ -1,10 +1,6 @@
 pandas
 scikit-learn
-torch
-torchvision
-transformers
+transformers==4.55.4
 omegaconf
 wandb
 nltk
-lightgbm
-catboost

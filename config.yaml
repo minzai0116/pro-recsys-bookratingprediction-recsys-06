@@ -1,0 +1,11 @@
+model: CatBoost
+seed: 42
+model_args:
+  CatBoost:
+    iterations: 1000
+    learning_rate: 0.1
+    depth: 6
+    loss_function: RMSE
+    early_stopping_rounds: 50
+    eval_metric: RMSE
+    verbose: 100

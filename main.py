@@ -7,37 +7,29 @@ import torch.optim as optimizer_module
 import torch.optim.lr_scheduler as scheduler_module
 from src.utils import Logger, Setting
 import src.data as data_module
-from src.train import train, test, lgbm, catboost
+import src.train as train_module
 import src.models as model_module
+'''
+지금 sklearn이랑 torch 모델 둘이라서 중간에 if문 좀 많은데, 과해지면 헬퍼함수로 빼거나, 대격변 패치로 data 다루듯이 바꾸겠습니다만
+굳이 안 불편하면 뺐을때 더 꼴뵈기 싫어짐 ㅎㅎ
+'''
 
-
-def main(args, wandb=None):
+def main(args):
     Setting.seed_everything(args.seed)
 
     ######################## LOAD DATA
     datatype = args.model_args[args.model].datatype
     data_load_fn = getattr(data_module, f'{datatype}_data_load')  # e.g. basic_data_load()
     data_split_fn = getattr(data_module, f'{datatype}_data_split')  # e.g. basic_data_split()
-    data_loader_fn = getattr(data_module, f'{datatype}_data_loader', None)  # e.g. basic_data_loader()
+    data_loader_fn = getattr(data_module, f'{datatype}_data_loader', None)  # Default -> None
 
     print(f'--------------- {args.model} Load Data ---------------')
     data = data_load_fn(args)
 
     print(f'--------------- {args.model} Train/Valid Split ---------------')
     data = data_split_fn(args, data)
-    ######################## [LightGBM 처리] ########################
-    if args.model == 'LightGBM':
-        lgbm(args, data, Setting())
-        return
-    ################################################################
-    ######################## [CatBoost 처리] ########################
-    if args.model == 'CatBoost':
-        catboost(args, data, Setting())
-        return
-    ################################################################
-
-    ####################### DataLoader 생성 (PyTorch 모델일 때만 실행)
-    data = data_loader_fn(args, data)
+    if data_loader_fn: # 해당 데이터 모듈에 Data_loader 있을때 에만(딥러닝 모델) 데이터로더 사용
+        data = data_loader_fn(args, data)
 
     ####################### Setting for Log
     setting = Setting()
@@ -52,18 +44,33 @@ def main(args, wandb=None):
     print(f'--------------- INIT {args.model} ---------------')
     # models > __init__.py 에 저장된 모델만 사용 가능
     # model = FM(args.model_args.FM, data).to('cuda')와 동일한 코드
-    model = getattr(model_module, args.model)(args.model_args[args.model], data).to(args.device)
+    model = getattr(model_module, args.model)(args.model_args[args.model], data)
+
+    # PyTorch 모델만 device로 이동, sklearn은 그런거 못함
+    if not args.model_args[args.model].is_sklearn:
+        model = model.to(args.device)
 
     # 만일 기존의 모델을 불러와서 학습을 시작하려면 resume을 true로 설정하고 resume_path에 모델을 지정하면 됨
+    # sklearn은 그 뭐냐 joblib써서 함 굿굿
     if args.train.resume:
-        model.load_state_dict(torch.load(args.train.resume_path, weights_only=True))
-
+        if args.model_args[args.model].is_sklearn:
+            import joblib
+            model = joblib.load(args.train.resume_path)
+        else:
+            model.load_state_dict(torch.load(args.train.resume_path, weights_only=True))
 
     ######################## TRAIN
+    # nn모듈일때랑 sklearn일때 train 함수가 각각 다르니까 알아서 잘 지정임 위에서 getattr 한거랑 비슷한거
+    if args.model_args[args.model].is_sklearn:
+        train = train_module.sklearn_train
+        test = train_module.sklearn_test
+    else:
+        train = train_module.train
+        test = train_module.test
+
     if not args.predict:
         print(f'--------------- {args.model} TRAINING ---------------')
         model = train(args, model, data, logger, setting)
-
 
     ######################## INFERENCE
     if not args.predict:
@@ -135,7 +142,6 @@ if __name__ == "__main__":
     for key in config_args.keys():
         if config_args[key] is not None:
             config_yaml[key] = config_args[key]
-    
     # 사용되지 않는 정보 삭제 (학습 시에만)
     if config_yaml.predict == False:
         del config_yaml.checkpoint
@@ -161,7 +167,7 @@ if __name__ == "__main__":
     print(OmegaConf.to_yaml(config_yaml))
     
     ######################## W&B
-    if args.wandb:
+    if config_yaml.wandb:
         import wandb
         # wandb.require("core")
         # https://docs.wandb.ai/ref/python/init 참고
@@ -178,5 +184,5 @@ if __name__ == "__main__":
     ######################## MAIN
     main(config_yaml)
 
-    if args.wandb:
+    if config_yaml.wandb:
         wandb.finish()

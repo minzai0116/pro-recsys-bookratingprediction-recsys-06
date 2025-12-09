@@ -12,8 +12,6 @@ python main.py  -c config/config_baseline.yaml  -m Image_DeepFM  -w True  -r Ima
 python main.py  -c config/config_baseline.yaml  -m Text_FM  -w True  -r Text_FM_baseline
 python main.py  -c config/config_baseline.yaml  -m Text_DeepFM  -w True  -r Text_DeepFM_baseline
 python main.py  -c config/config_baseline.yaml  -m ResNet_DeepFM  -w True  -r ResNet_DeepFM_baseline
-python main.py  -c config/config_baseline.yaml  -m LightGBM  -w True  -r LightGBM
-python main.py  -c config/config_baseline.yaml  -m CatBoost  -w True  -r CatBoost
 
 
 ######## 추가 베이스라인 실행 스크립트 ########
