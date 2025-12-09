@@ -6,3 +6,4 @@ wandb
 nltk
 catboost
 torch
+torchvision
