@@ -4,7 +4,24 @@ import regex
 from sklearn.model_selection import train_test_split
 
 def sklearn_v1_data_load(args):
-    """sklearn 모델용 데이터 로드 및 전처리"""
+    '''
+    Parameters
+    ----------
+    args : argparse.Namespace
+        설정 파라미터 (dataset, model_args, data_args 등 포함)
+
+    Returns
+    -------
+    data : dict
+        전처리된 데이터 딕셔너리
+        - train : pd.DataFrame, 학습 데이터 (features)
+        - train_y : pd.Series, 학습 데이터 레이블
+        - test : pd.DataFrame, 테스트 데이터 (features)
+        - feature_names : list, 전체 피처명 리스트
+        - categorical_features : list, 범주형 피처명 리스트
+        - numeric_features : list, 숫자형 피처명 리스트
+        - sub : pd.DataFrame, 제출 파일 템플릿
+    '''
     # 1. 데이터 로드
     print(">>> Loading Data...")
     users = pd.read_csv(args.dataset.data_path + 'users.csv')
