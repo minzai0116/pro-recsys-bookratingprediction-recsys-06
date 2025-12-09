@@ -55,7 +55,7 @@ def train(args, model, data, logger, setting):
     if args.wandb:
         import wandb
 
-    X_train, y_train = data['X_train'], data['y_train']
+    X_train, y_train = data['train'], data['train_y']
 
     # Stratified K Fold 설정
     n_splits = args.stratifiedkfold.n_splits
@@ -118,8 +118,7 @@ def train(args, model, data, logger, setting):
     # 평균 Feature Importance 로깅
     if isinstance(feature_importance_sum, np.ndarray): # feature_importance_sum이 0이 아닌지 확인
         avg_importance = feature_importance_sum / n_splits
-        model.feature_importances_ = avg_importance # 빈 model에 강제로 feature_importance 입력
-        log_feature_importance(args, model, data)
+        log_feature_importance(args, model, data, avg_importance)
 
     logger.close()
 
@@ -175,13 +174,13 @@ def test(args, model, data, setting, checkpoint=None):
     predicts : list
         예측값 리스트
     """
-    if checkpoint:
-        model = joblib.load(checkpoint)
-    else:
-        if args.train.save_best_model:
+    # if checkpoint:
+    #     model = joblib.load(checkpoint)
+    # else:
+    #     if args.train.save_best_model:
             # 각 fold별로 학습된 모델을 불러오기
-            model_path_list = sorted(glob.glob(f'{args.train.ckpt_dir}/{setting.save_time}_{args.model}_*.pkl'))
-            print(f"불러올 모델 개수: {len(model_path_list)}")
+    model_path_list = sorted(glob.glob(f'{args.train.ckpt_dir}/{setting.save_time}_{args.model}_*.pkl'))
+    print(f"불러올 모델 개수: {len(model_path_list)}")
     
     if len(model_path_list) == 0:
         print(f"Error: 저장된 모델을 찾을 수 없습니다.")
