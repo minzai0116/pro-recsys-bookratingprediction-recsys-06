@@ -23,6 +23,8 @@ run_name: ''                            # wandb 실행 이름. 빈 문자열일 
 data_args:
   sklearn_v1:
         use_summary_feature: False #summary feature 사용여부, 기본 False
+        remove_noise: False # threshold 이하의 평가를 지닌 categorical 피쳐들을 노이즈로 보고 삭제 여부
+        threshold: 1 # 노이즈로 판단할 threshold
 
 model_args:     # model에 해당하는 파라미터만 실질적으로 사용됩니다.
     FM: 

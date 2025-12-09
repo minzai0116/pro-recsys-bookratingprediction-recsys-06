@@ -27,6 +27,8 @@ def sklearn_v1_data_load(args):
     print(">>> Processing Context Data...")
     users_, books_ = process_sklearn_v1_data(users, books)
 
+    if args.remove_noise:
+        users_, books_ = remove_noise_features(users_, books_, train, threshold=args.threshold)
 
     # 3. 피처 정의 -> args에서 지정으로 따로 빼려다가,
     # 아예 이 파트만 하드코딩하고 나머지를 재사용 하기로 함 팀장이 args에서 이래저래 길게 주는거 싫어함
@@ -122,6 +124,36 @@ def split_location(x: str) -> list:
         if (res[i] in res[:i]) and (not pd.isna(res[i])):
             res.pop(i)
     return res
+
+
+def remove_noise_features(users, books, train_ratings, threshold=1):
+    """
+    train_ratings 기준으로 상호작용이 threshold 이하인 카테고리 값 제거
+    """
+    users_ = users.copy()
+    books_ = books.copy()
+
+    print(f">>> Removing noise features (rating <= {threshold})...")
+
+    train_merged = train_ratings.merge(users_, on='user_id', how='left') \
+        .merge(books_, on='isbn', how='left')
+
+    categorical_features = ['category', 'location_country', 'location_state', 'location_city',
+                            'book_author', 'publisher', 'language']
+
+    for feature in categorical_features:
+        if feature in train_merged.columns:
+            value_counts = train_merged[feature].value_counts()
+            noise_values = value_counts[value_counts <= threshold].index.tolist()
+
+            print(f"    {feature}: {len(noise_values)}개 노이즈 값 제거 (전체 {len(value_counts)}개 중)")
+
+            if feature in users_.columns:
+                users_.loc[users_[feature].isin(noise_values), feature] = np.nan
+            elif feature in books_.columns:
+                books_.loc[books_[feature].isin(noise_values), feature] = np.nan
+
+    return users_, books_
 
 
 def process_sklearn_v1_data(users, books):
