@@ -35,8 +35,9 @@ def main(args):
     data = data_split_fn(args, data)
 
     print(f'--------------- {args.model} preprocessing Data ---------------')
-    if data_preprocess_fn:
-        data = data_preprocess_fn(args, data)
+    if data_preprocess_fn: # 좀 거지같게 표현 된거 앎, 나중에 고치겠음
+        datatype = args.model_args[args.model]['datatype']
+        data = data_preprocess_fn(args.data_args[datatype], data)
 
     if data_loader_fn: # 해당 데이터 모듈에 Data_loader 있을때 에만(딥러닝 모델) 데이터로더 사용
         print(f'--------------- {args.model} Loading to Loader ---------------')
