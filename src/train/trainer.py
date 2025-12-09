@@ -48,6 +48,16 @@ def train(args, model, dataloader, logger, setting):
             y_hat = model(x)
             loss = loss_fn(y_hat, y.float())
             optimizer.zero_grad()
+            
+            # L1_norm 적용
+            if args.regularization:
+                l1_norm = sum(
+                    p.abs().sum()
+                    for name, p in model.named_parameters()
+                    if "bias" not in name
+                )
+                loss = loss + args.regularize_lambda * l1_norm
+            
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
