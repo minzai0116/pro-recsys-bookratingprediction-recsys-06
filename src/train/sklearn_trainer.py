@@ -15,12 +15,39 @@ METRIC_FUNCTIONS = {
 
 
 def normalize_metric_name(metric):
-    """메트릭 이름 정규화 (RMSELoss -> rmse, rmse -> rmse)"""
+    """
+    메트릭 이름 정규화
+
+    Parameters
+    ----------
+    metric : str
+        메트릭 이름 (예: 'RMSELoss', 'rmse')
+
+    Returns
+    -------
+    str
+        정규화된 메트릭 이름 (소문자, 'loss' 제거)
+    """
     return metric.lower().replace('loss', '')
 
 
 def prepare_fit_params(args, data):
-    """fit 파라미터 준비"""
+    """
+    모델 학습을 위한 fit 파라미터 준비
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        설정 파라미터
+    data : dict
+        학습/검증 데이터 딕셔너리
+
+    Returns
+    -------
+    fit_params : dict
+        모델별 fit에 전달할 파라미터 (eval_set 등)
+    """
+
     fit_params = {}
 
     if args.dataset.valid_ratio != 0:
@@ -33,7 +60,26 @@ def prepare_fit_params(args, data):
 
 
 def calculate_metrics(model, X, y, metrics):
-    """메트릭 계산 (여러 개)"""
+    """
+    여러 메트릭 계산
+
+    Parameters
+    ----------
+    model : sklearn 모델
+        예측을 수행할 학습된 모델
+    X : pd.DataFrame
+        입력 데이터
+    y : pd.Series
+        정답 레이블
+    metrics : list
+        계산할 메트릭 이름 리스트
+
+    Returns
+    -------
+    results : dict
+        메트릭명을 key, 계산값을 value로 하는 딕셔너리
+    """
+
     pred = model.predict(X)
     results = {}
 
@@ -46,7 +92,22 @@ def calculate_metrics(model, X, y, metrics):
 
 
 def log_feature_importance(args, model, data):
-    """Feature Importance 계산 및 로깅"""
+    """
+    Feature Importance 계산 및 로깅 (CatBoost, LightGBM만 지원)
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        설정 파라미터
+    model : sklearn 모델
+        학습된 모델 (feature_importances_ 속성 필요)
+    data : dict
+        학습 데이터 딕셔너리 (feature_names 포함)
+
+    Returns
+    -------
+    None
+    """
     if args.model not in ['CatBoost', 'LightGBM']:
         return
 
@@ -93,11 +154,25 @@ def save_model(args, model, setting):
 
 def train(args, model, data, logger, setting):
     """
-    sklearn 모델 학습
+    sklearn 모델 학습 및 검증
 
-    Args:
-        model: sklearn 모델 (fit 메서드 있어야 함)
-        data: dict with 'X_train', 'y_train', 'X_valid', 'y_valid'
+    Parameters
+    ----------
+    args : argparse.Namespace
+        설정 파라미터
+    model : sklearn 모델
+        학습할 모델 (fit 메서드 필요)
+    data : dict
+        학습/검증 데이터 딕셔너리
+    logger : Logger
+        학습 로그 기록 객체
+    setting : Setting
+        로거 설정인듯?
+
+    Returns
+    -------
+    model : sklearn 모델
+        학습된 모델
     """
     if args.wandb:
         import wandb
@@ -168,7 +243,25 @@ def train(args, model, data, logger, setting):
 
 
 def valid(model, X_valid, y_valid, metric):
-    """Validation 데이터로 평가"""
+    """
+    검증 데이터로 모델 평가
+
+    Parameters
+    ----------
+    model : sklearn 모델
+        평가할 학습된 모델
+    X_valid : pd.DataFrame
+        검증 입력 데이터
+    y_valid : pd.Series
+        검증 정답 레이블
+    metric : str
+        평가 메트릭 이름
+
+    Returns
+    -------
+    score : float
+        계산된 메트릭 값
+    """
     y_pred = model.predict(X_valid)
     metric_fn = METRIC_FUNCTIONS[metric]
     score = metric_fn(y_valid, y_pred)
@@ -177,11 +270,25 @@ def valid(model, X_valid, y_valid, metric):
 
 def test(args, model, data, setting, checkpoint=None):
     """
-    테스트 데이터로 예측
+    테스트 데이터로 예측 수행
 
-    Args:
-        data: dict with 'test' - 테스트 데이터
-        checkpoint: 저장된 모델 경로 (None이면 방금 학습된 모델 사용)
+    Parameters
+    ----------
+    args : argparse.Namespace
+        설정 파라미터
+    model : sklearn 모델
+        예측에 사용할 모델 (checkpoint 없을 경우)
+    data : dict
+        테스트 데이터 딕셔너리 ('test' 키 포함)
+    setting : Setting
+        실험 설정
+    checkpoint : str, optional
+        저장된 모델 경로 (None이면 방금 학습 된 모델 사용)
+
+    Returns
+    -------
+    predicts : list
+        예측값 리스트
     """
     if checkpoint:
         model = joblib.load(checkpoint)

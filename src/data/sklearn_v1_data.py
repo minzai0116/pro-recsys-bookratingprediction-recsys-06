@@ -3,6 +3,116 @@ import numpy as np
 import regex
 from sklearn.model_selection import train_test_split
 
+def sklearn_v1_data_load(args):
+    '''
+    Parameters
+    ----------
+    args : argparse.Namespace
+        설정 파라미터 (dataset, model_args, data_args 등 포함)
+
+    Returns
+    -------
+    data : dict
+        전처리된 데이터 딕셔너리
+        - train : pd.DataFrame, 학습 데이터 (features)
+        - train_y : pd.Series, 학습 데이터 레이블
+        - test : pd.DataFrame, 테스트 데이터 (features)
+        - feature_names : list, 전체 피처명 리스트
+        - categorical_features : list, 범주형 피처명 리스트
+        - numeric_features : list, 숫자형 피처명 리스트
+        - sub : pd.DataFrame, 제출 파일 템플릿
+    '''
+    # 1. 데이터 로드
+    print(">>> Loading Data...")
+    users = pd.read_csv(args.dataset.data_path + 'users.csv')
+    books = pd.read_csv(args.dataset.data_path + 'books.csv')
+    train = pd.read_csv(args.dataset.data_path + 'train_ratings.csv')
+    test = pd.read_csv(args.dataset.data_path + 'test_ratings.csv')
+    sub = pd.read_csv(args.dataset.data_path + 'sample_submission.csv')
+
+    # 솔직히 여기가 제일마음에 안들긴 함, 뭐냐면 각 데이터 타입에서의 아규먼트 쓰겠다는거임, 그대로 안 준 이유는
+    # 오직 위에서 데이터셋을 써야 하기 때문임
+    datatype = args.model_args[args.model]['datatype'] # 이 데이터 타입
+    args = args.data_args[datatype] # 그래서 이 데이터 타입에 할당된 아규먼트
+
+    # 요약 임베딩 로드 (옵션)
+    emb_cols = []
+    if args.use_summary_feature:
+        books, emb_cols = load_summary_embeddings(args, books)
+
+    # 2. 전처리 수행
+    print(">>> Processing Context Data...")
+    users_, books_ = process_sklearn_v1_data(users, books)
+
+    if args.remove_noise:
+        users_, books_ = remove_noise_features(users_, books_, train, threshold=args.threshold)
+
+    # 3. 피처 정의 -> args에서 지정으로 따로 빼려다가,
+    # 아예 이 파트만 하드코딩하고 나머지를 재사용 하기로 함 팀장이 args에서 이래저래 길게 주는거 싫어함
+    user_categorical = ['user_id', 'location_country', 'location_state', 'location_city']
+    user_numeric = ['age']
+    book_categorical = ['isbn', 'book_title', 'book_author', 'publisher', 'language', 'category']
+    book_numeric = ['year_of_publication']
+
+    categorical_cols = user_categorical + book_categorical
+    numeric_cols = user_numeric + book_numeric + emb_cols
+    all_cols = categorical_cols + numeric_cols
+
+    # 4. 데이터 병합
+    train_df = train.merge(users_, on='user_id', how='left').merge(books_, on='isbn', how='left')
+    test_df = test.merge(users_, on='user_id', how='left').merge(books_, on='isbn', how='left')
+
+    # 5. 데이터 타입 변환
+    train_X = train_df[all_cols].copy()
+    test_X = test_df[all_cols].copy()
+
+    # 범주형: 문자열로 변환
+    for col in categorical_cols:
+        train_X[col] = train_X[col].astype(str)
+        test_X[col] = test_X[col].astype(str)
+
+    # 숫자형: 숫자 타입 유지... 즉 아무것도 안 함
+
+    data = {
+        'train': train_X,
+        'train_y': train_df['rating'],
+        'test': test_X,
+        'feature_names': all_cols,
+        'categorical_features': categorical_cols,
+        'numeric_features': numeric_cols,
+        'sub': sub
+    }
+
+    return data
+
+
+def sklearn_v1_data_split(args, data):
+    """
+    학습/검증 데이터 분리
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        설정 파라미터
+    data : dict
+        전체 데이터 딕셔너리
+
+    Returns
+    -------
+    data : dict
+        분리된 데이터가 추가된 딕셔너리
+    """
+    X_train, X_valid, y_train, y_valid = train_test_split(
+        data['train'],
+        data['train_y'],
+        test_size=args.dataset.valid_ratio,
+        random_state=args.seed,
+        shuffle=True
+    )
+    data['X_train'], data['X_valid'] = X_train, X_valid
+    data['y_train'], data['y_valid'] = y_train, y_valid
+
+    return data
 
 def str2list(x: str) -> list:
     '''문자열을 리스트로 변환하는 함수'''
@@ -31,6 +141,36 @@ def split_location(x: str) -> list:
         if (res[i] in res[:i]) and (not pd.isna(res[i])):
             res.pop(i)
     return res
+
+
+def remove_noise_features(users, books, train_ratings, threshold=1):
+    """
+    train_ratings 기준으로 상호작용이 threshold 이하인 카테고리 값 제거
+    """
+    users_ = users.copy()
+    books_ = books.copy()
+
+    print(f">>> Removing noise features (rating <= {threshold})...")
+
+    train_merged = train_ratings.merge(users_, on='user_id', how='left') \
+        .merge(books_, on='isbn', how='left')
+
+    categorical_features = ['category', 'location_country', 'location_state', 'location_city',
+                            'book_author', 'publisher', 'language']
+
+    for feature in categorical_features:
+        if feature in train_merged.columns:
+            value_counts = train_merged[feature].value_counts()
+            noise_values = value_counts[value_counts <= threshold].index.tolist()
+
+            print(f"    {feature}: {len(noise_values)}개 노이즈 값 제거 (전체 {len(value_counts)}개 중)")
+
+            if feature in users_.columns:
+                users_.loc[users_[feature].isin(noise_values), feature] = np.nan
+            elif feature in books_.columns:
+                books_.loc[books_[feature].isin(noise_values), feature] = np.nan
+
+    return users_, books_
 
 
 def process_sklearn_v1_data(users, books):
@@ -134,89 +274,3 @@ def load_summary_embeddings(args, books):
 
     return books_with_emb, emb_cols
 
-
-def sklearn_v1_data_load(args):
-    """sklearn 모델용 데이터 로드 및 전처리"""
-    # 1. 데이터 로드
-    print(">>> Loading Data...")
-    users = pd.read_csv(args.dataset.data_path + 'users.csv')
-    books = pd.read_csv(args.dataset.data_path + 'books.csv')
-    train = pd.read_csv(args.dataset.data_path + 'train_ratings.csv')
-    test = pd.read_csv(args.dataset.data_path + 'test_ratings.csv')
-    sub = pd.read_csv(args.dataset.data_path + 'sample_submission.csv')
-
-    # 2. 요약 임베딩 로드 (옵션)
-    emb_cols = []
-    if getattr(args.model_args[args.model], 'use_summary_feature', False):
-        books, emb_cols = load_summary_embeddings(args, books)
-
-    # 3. 전처리 수행
-    print(">>> Processing Context Data...")
-    users_, books_ = process_sklearn_v1_data(users, books)
-
-    # 4. 피처 정의 -> args에서 지정으로 따로 빼려다가,
-    # 아예 이 파트만 하드코딩하고 나머지를 재사용 하기로 함 팀장이 args에서 이래저래 길게 주는거 싫어함
-    user_categorical = ['user_id', 'location_country', 'location_state', 'location_city']
-    user_numeric = ['age']
-    book_categorical = ['isbn', 'book_title', 'book_author', 'publisher', 'language', 'category']
-    book_numeric = ['year_of_publication']
-
-    categorical_cols = user_categorical + book_categorical
-    numeric_cols = user_numeric + book_numeric + emb_cols
-    all_cols = categorical_cols + numeric_cols
-
-    # 5. 데이터 병합
-    train_df = train.merge(users_, on='user_id', how='left').merge(books_, on='isbn', how='left')
-    test_df = test.merge(users_, on='user_id', how='left').merge(books_, on='isbn', how='left')
-
-    # 6. 데이터 타입 변환
-    train_X = train_df[all_cols].copy()
-    test_X = test_df[all_cols].copy()
-
-    # 범주형: 문자열로 변환
-    for col in categorical_cols:
-        train_X[col] = train_X[col].astype(str)
-        test_X[col] = test_X[col].astype(str)
-
-    # 숫자형: 숫자 타입 유지... 즉 아무것도 안 함
-
-    data = {
-        'train': train_X,
-        'train_y': train_df['rating'],
-        'test': test_X,
-        'feature_names': all_cols,
-        'categorical_features': categorical_cols,
-        'numeric_features': numeric_cols,
-        'sub': sub
-    }
-
-    return data
-
-
-def sklearn_v1_data_split(args, data):
-    """
-    학습/검증 데이터 분리
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        설정 파라미터
-    data : dict
-        전체 데이터 딕셔너리
-
-    Returns
-    -------
-    data : dict
-        분리된 데이터가 추가된 딕셔너리
-    """
-    X_train, X_valid, y_train, y_valid = train_test_split(
-        data['train'],
-        data['train_y'],
-        test_size=args.dataset.valid_ratio,
-        random_state=args.seed,
-        shuffle=True
-    )
-    data['X_train'], data['X_valid'] = X_train, X_valid
-    data['y_train'], data['y_valid'] = y_train, y_valid
-
-    return data
