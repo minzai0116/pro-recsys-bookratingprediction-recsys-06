@@ -11,7 +11,7 @@ memo: |-
 #   $ python main.py --config config.yaml --seed 2024
 #   과 같이 실행할 경우 seed는 0이 아닌 2024로 설정됩니다.
 predict: False  # 예측할 경우 True로 설정
-checkpoints: 'saved/checkpoints/FM_best.pt'   # 예측 시 불러올 모델 경로
+checkpoint: 'saved/checkpoint/CatBoost_SKF_best'   # 예측 시 불러올 모델 경로
 seed: 0         # 시드 고정
 device: cuda    # 가능한 값 : cpu, cuda, mps
 model: FM       # 모델 선택
