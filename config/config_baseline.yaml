@@ -158,6 +158,7 @@ metrics: [ MSELoss, MAELoss, RMSELoss ]  # 평가 지표. 직접 정의한 loss 
 train:
     epochs: 20                          # 학습 에폭 수
     log_dir: saved/log                  # 로그 저장 경로
+    save_dir: saved/models              # 베스트 모델 아닐때 저장경로.... 이건 왜 코드에서 빼먹은거야? 아니면 코드를 바꾸던가...
     ckpt_dir: saved/checkpoint    # 모델 저장 경로
     submit_dir: saved/submit            # 예측 저장 경로
     save_best_model: True               # True: val_loss가 최소인 모델 저장 / False: 모든 모델 저장
