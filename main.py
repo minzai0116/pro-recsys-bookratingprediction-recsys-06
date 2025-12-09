@@ -31,8 +31,8 @@ def main(args):
     print(f'--------------- {args.model} Load Data ---------------')
     data = data_load_fn(args)
 
-    print(f'--------------- {args.model} Train/Valid Split ---------------')
     if not is_stratifiedkfold: # Stratified K Fold를 실행할 때는 split 하지 않음. DL 모델도 Stratified K Fold하려면 수정해야 함
+        print(f'--------------- {args.model} Train/Valid Split ---------------')
         data = data_split_fn(args, data)
     if data_loader_fn: # 해당 데이터 모듈에 Data_loader 있을때 에만(딥러닝 모델) 데이터로더 사용
         data = data_loader_fn(args, data)
