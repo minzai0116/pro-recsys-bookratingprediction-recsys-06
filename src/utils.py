@@ -123,18 +123,24 @@ class Logger:
         self.file_handler.setFormatter(self.formatter)
         self.logger.addHandler(self.file_handler)
 
-    def log(self, epoch, train_loss, valid_loss=None, valid_metrics=None):
+    def log(self, step, train_loss, valid_loss=None, valid_metrics=None, step_name='epoch', total_steps=None):
         '''
         [description]
         log file에 epoch, train loss, valid loss를 기록하는 함수입니다.
         이 때, log file은 train.log로 저장됩니다.
+        Stratified K Fold를 사용할 때는 step_name을 fold로 설정하고 total_steps는 n_splits와 동일하게 설정
 
         [arguments]
-        epoch : epoch
+        step : current epoch or fold
         train_loss : train loss
         valid_loss : valid loss
+        step_name : 'epoch' or 'fold'
+        total_steps : total number of folds. If None, total_steps is train epochs
         '''
-        message = f'epoch : {epoch}/{self.args.train.epochs} | train loss : {train_loss:.3f}'
+        if total_steps is None:
+            total_steps = self.args.train.epochs
+
+        message = f'{step_name} : {step}/{total_steps} | train loss : {train_loss:.3f}'
         if valid_loss:
             message += f' | valid loss : {valid_loss:.3f}'
         if valid_metrics:
