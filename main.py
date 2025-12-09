@@ -9,6 +9,7 @@ from src.utils import Logger, Setting
 import src.data as data_module
 import src.train as train_module
 import src.models as model_module
+import joblib
 '''
 지금 sklearn이랑 torch 모델 둘이라서 중간에 if문 좀 많은데, 과해지면 헬퍼함수로 빼거나, 대격변 패치로 data 다루듯이 바꾸겠습니다만
 굳이 안 불편하면 뺐을때 더 꼴뵈기 싫어짐 ㅎㅎ
@@ -16,6 +17,9 @@ import src.models as model_module
 
 def main(args):
     Setting.seed_everything(args.seed)
+
+    ######################## Argument Setting
+    is_sklearn = getattr(args.model_args[args.model], 'is_sklearn', False) # Default -> False
 
     ######################## LOAD DATA
     datatype = args.model_args[args.model].datatype
@@ -47,21 +51,20 @@ def main(args):
     model = getattr(model_module, args.model)(args.model_args[args.model], data)
 
     # PyTorch 모델만 device로 이동, sklearn은 그런거 못함
-    if not args.model_args[args.model].is_sklearn:
+    if not is_sklearn:
         model = model.to(args.device)
 
     # 만일 기존의 모델을 불러와서 학습을 시작하려면 resume을 true로 설정하고 resume_path에 모델을 지정하면 됨
     # sklearn은 그 뭐냐 joblib써서 함 굿굿
     if args.train.resume:
-        if args.model_args[args.model].is_sklearn:
-            import joblib
+        if is_sklearn:
             model = joblib.load(args.train.resume_path)
         else:
             model.load_state_dict(torch.load(args.train.resume_path, weights_only=True))
 
     ######################## TRAIN
     # nn모듈일때랑 sklearn일때 train 함수가 각각 다르니까 알아서 잘 지정임 위에서 getattr 한거랑 비슷한거
-    if args.model_args[args.model].is_sklearn:
+    if is_sklearn:
         train = train_module.sklearn_train
         test = train_module.sklearn_test
     else:
