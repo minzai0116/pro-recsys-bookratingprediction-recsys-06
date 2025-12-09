@@ -91,7 +91,7 @@ def calculate_metrics(model, X, y, metrics):
     return results
 
 
-def log_feature_importance(args, model, data):
+def log_feature_importance(args, model, data, importance_values=None):
     """
     Feature Importance 계산 및 로깅 (CatBoost, LightGBM만 지원)
 
@@ -111,14 +111,24 @@ def log_feature_importance(args, model, data):
     if args.model not in ['CatBoost', 'LightGBM']:
         return
 
-    if not hasattr(model, 'feature_importances_'):
+    # 중요도 값 결정 로직
+    if importance_values is not None:
+        # 직접 넣어준 값이 있으면 그걸 씀 
+        importance = importance_values
+    elif hasattr(model, 'feature_importances_'):
+        # 없으면 모델에서 꺼내 씀 
+        importance = model.feature_importances_
+    else:
+        # 둘 다 없으면 그냥 종료
         return
 
     print("\n>>> Top 10 Feature Importance")
 
-    X_train = data['X_train']
+    if importance_values is None:
+        X_train = data['X_train']
+    else:
+        X_train = data['train']
     feature_names = data.get('feature_names', X_train.columns.tolist())
-    importance = model.feature_importances_
 
     fi_df = pd.DataFrame({
         'feature': feature_names,
