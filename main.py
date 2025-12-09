@@ -123,6 +123,7 @@ if __name__ == "__main__":
     arg('--run_name', '--rn', '-rn', '--r', '-r', type=str,
         help='wandb에서 사용할 run 이름을 설정할 수 있습니다.')
     
+    arg('--memo', type=str)
     arg('--regularization', type=ast.literal_eval)
     arg('--regularize_lambda', type=ast.literal_eval)
     arg('--model_args', '--ma', '-ma', type=ast.literal_eval)

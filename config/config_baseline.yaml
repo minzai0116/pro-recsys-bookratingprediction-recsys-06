@@ -16,7 +16,7 @@ model: bert       # 모델 선택
 # datatype: sklearn_v1 #조만간 손 볼 예정, 솔직히 전처리는 분리하는게 맞지 않음?
 wandb: False                            # wandb 사용 여부
 wandb_project: 'book-rating-prediction' # wandb 프로젝트 이름
-run_name: 'bert_JHD_with_Lasso'                            # wandb 실행 이름. 빈 문자열일 경우 자동 생성
+run_name: 'bert_JHD'                            # wandb 실행 이름. 빈 문자열일 경우 자동 생성
 
 data_args:
   sklearn_v1:

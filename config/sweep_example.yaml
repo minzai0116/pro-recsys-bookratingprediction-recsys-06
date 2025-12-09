@@ -3,7 +3,7 @@
 program: main.py
 name: Sweep Lasso - bert_rec
 project: book-rating-prediction
-method: bayes
+method: grid
 metric:
     goal: minimize
     name: 'Valid RMSE'
@@ -11,6 +11,10 @@ description: |-
     bert_rec test : regularize lambd
 
 parameters:
+    memo:
+        value: "Regularization_test"
+
+
     config:         # configuration
         value: './config/config_baseline.yaml'
     predict:
