@@ -12,9 +12,11 @@ from .basic_data import basic_data_split
 import pickle
 
 
-# process_context_data 전용 fragment function
+### process_context_data 전용 fragment function ###
+
 def str2list(x: str) -> list:
     return x[1:-1].split(', ')
+
 def split_location(x: str) -> list:
     res = x.split(',')
     res = [i.strip().lower() for i in res]
@@ -26,6 +28,25 @@ def split_location(x: str) -> list:
             res.pop(i)
     return res
 
+def text_preprocessing(summary):
+    """
+    Parameters
+    ----------
+    summary : pd.Series
+        정규화와 같은 기본적인 전처리를 하기 위한 텍스트 데이터를 입력합니다.
+    
+    Returns
+    -------
+    summary : pd.Series
+        전처리된 텍스트 데이터를 반환합니다.
+        베이스라인에서는 특수문자 제거, 공백 제거를 진행합니다.
+    """
+    summary = re.sub("[^0-9a-zA-Z.,!?]", " ", summary)  # .,!?를 제외한 특수문자 제거
+    summary = re.sub("\s+", " ", summary)  # 중복 공백 제거
+
+    return summary
+
+# 참고로 여기서 summary index 생성
 def process_context_data(users, books):
     '''
     
@@ -92,9 +113,27 @@ def process_context_data(users, books):
     
     return users_, books_
 
-# 학습에 입력시킬 열만 남기기
+
+# 학습에 입력시킬 열만 남기기 + [CLS] 토큰 추가 + 각 원소를 고유 index로 변환
 def remain_train_features_only(rating):
+    '''
+    ##################
+    
+    input = rating에 books와 users를 병합한 dataframe
+    
+    output = [summary_index, CLS, rating, user_id, country, state, city..... ]
+    
+    ##################
+    
+    특이사항 :   summary_index는 맨 앞에, CLS는 그 뒤에 추가됨.
+                summary index == bert에서 summary_vector 탐색용 index
+                CLS == 출력 vector를 편하게 찾기 위해 맨 앞에 붙임. 
+    '''
+    
+    
     # 남길 열    
+    # summary는 미리 부여한 고유한 값이라 바뀌면 안 됨.
+    # rating(=score)는 ground_truth(=Y)값이므로 바뀌면 안 됨.
     summary_index = rating['summary_index']
     scores = rating['rating']
     
@@ -132,36 +171,24 @@ def remain_train_features_only(rating):
     for col, offset in zip(rating.columns, off_set):
         df_offset[col] = (rating[col].astype("int32") + offset).astype("int32")
     
-    # offset = 모든 원소의 고유값을 부여하는 행위.
+    # offset = 현 dataframe에서의 고유 index를 부여하는 행위
     # 이 고유값은 embedding index로 활용된다.
     df_offset.insert(0, "summary_index", summary_index)
     df_offset.insert(2, "rating", scores)
     
     # 맨 처음이 summary_index, 다음은 cls token
+    # df_offset = [summary_index, cls, rating, user_id, country, state, city.....]
     return df_offset
-    
-
-def text_preprocessing(summary):
-    """
-    Parameters
-    ----------
-    summary : pd.Series
-        정규화와 같은 기본적인 전처리를 하기 위한 텍스트 데이터를 입력합니다.
-    
-    Returns
-    -------
-    summary : pd.Series
-        전처리된 텍스트 데이터를 반환합니다.
-        베이스라인에서는 특수문자 제거, 공백 제거를 진행합니다.
-    """
-    summary = re.sub("[^0-9a-zA-Z.,!?]", " ", summary)  # .,!?를 제외한 특수문자 제거
-    summary = re.sub("\s+", " ", summary)  # 중복 공백 제거
-
-    return summary
 
 
 # only once per model
-def text_to_vector(args):
+# summary를 미리 vector로 저장해놓는 행위
+# 나중에 summary -> vector로 검색할 수 있게
+# isbn으로 고유 번호 지정
+# book_summary_vector_list[isbn] = sumnary_vector
+def text_to_vector(books, args):
+    print('--------------- Preparing Summary Vector ---------------')
+    
     """
     Parameters
     ----------
@@ -174,16 +201,16 @@ def text_to_vector(args):
     ----------
     """
     
-    books_ = pd.read_csv('./data/books_for_bert.csv')
+    books_ = books.copy()
     
-    tokenizer = AutoTokenizer.from_pretrained(args.pretrained_model)
-    model = AutoModel.from_pretrained(args.pretrained_model).to(device=args.device)
+    tokenizer = AutoTokenizer.from_pretrained(args.model_args.bert_rec.pretrained_model)
+    model = AutoModel.from_pretrained(args.model_args.bert_rec.pretrained_model).to(device=args.device)
     model.eval()
     book_summary_vector_list = {}
     
     test_idx = 0
     
-    for title, summary, book_id in tqdm(zip(books_['title'], books_['summary'], books_['summary_id']), total=len(books_)):
+    for title, summary, book_id in tqdm(zip(books_['book_title'], books_['summary'], books_['summary_index']), total=len(books_)):
         # 책에 대한 텍스트 프롬프트는 아래와 같이 구성됨
         # '''
         # Book Title: {title}
@@ -212,12 +239,13 @@ def text_to_vector(args):
                 print(i, book_summary_vector_list[i][:5])
             break
             
-    with open("summaries.pkl", "wb") as f:
+    with open(f"{args.dataset.data_path}" + "/summary_vector/summaries.pkl", "wb") as f:
         pickle.dump(book_summary_vector_list, f)
     #np.save('./data/text_vector/book_summary_vector.npy', book_summary_vector_list)  
         
     return book_summary_vector_list
 
+# 나눠주는거 main에서도 split 불러와서 해주고 있음. (???) 뭐지
 def bert_data_split(args, data):
     '''data 내의 학습 데이터를 학습/검증 데이터로 나누어 추가한 후 반환합니다.'''
     return basic_data_split(args, data)
@@ -227,21 +255,25 @@ def bert_data_load(args):
     '''
         - csv 불러와서, split까지 하는 함수
         1) csv 읽어오고
-        2) 전처리함수 거치고
+        2) 전처리함수 거치고 ( + summart_vect가 없으면 생성)
         3) rating에 user_id, isbn 기준으로 merge
         4) 
     '''
     
     # 1. 데이터 로드
-    users_ = pd.read_csv(args.dataset.data_path + 'users_for_bert.csv')
-    books_ = pd.read_csv(args.dataset.data_path + 'books_for_bert.csv')
+    users_ = pd.read_csv(args.dataset.data_path + 'users.csv')
+    books_ = pd.read_csv(args.dataset.data_path + 'books.csv')
     train = pd.read_csv(args.dataset.data_path + 'train_ratings.csv')
     test = pd.read_csv(args.dataset.data_path + 'test_ratings.csv')
     sub = pd.read_csv(args.dataset.data_path + 'sample_submission.csv')
 
 
-    # 2. 베이스라인 전처리 수행 (context_data.py logic) --> 사전 수행했음.
-    #users_, books_ = process_context_data(users, books)
+    # 2. 베이스라인 전처리 수행
+    users_, books_ = process_context_data(users_, books_)
+
+    # summary를 vector화 하는 함수, 여기는 summary가 있으면 실행 안 됨.
+    if not args.model_args.bert_rec.prepared_summary:
+        text_to_vector(books_, args)
 
     # 3. 데이터 병합
     train_df = train.merge(users_, on='user_id', how='left').merge(books_, on='isbn', how='left')
@@ -258,8 +290,8 @@ def bert_data_load(args):
             'sub':sub,
             }
 
-    # test, vaild =8:2
-    return bert_data_split(args, data)
+    # test, vaild = 8:2
+    return data
 
 
 def bert_data_loader(args, data):

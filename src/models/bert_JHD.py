@@ -3,7 +3,6 @@ import torch.nn as nn
 import numpy as np
 import pickle
 
-
 # done
 class FeedForward(nn.Module):
     ''' 
@@ -29,13 +28,13 @@ class FeedForward(nn.Module):
         self.test = test
         
         self.extend = nn.Linear(args.embed_dim, args.extend_dim)
-        self.silu = nn.SiLU()
+        self.activation = select_activation(args)
         self.shrink = nn.Linear(args.extend_dim, args.embed_dim)
         
     def forward(self, x: torch.Tensor):
         
         x_extend = self.extend(x)
-        x_extend = self.silu(x_extend)
+        x_extend = self.activation(x_extend)
         x_shrink = self.shrink(x_extend)
         return x_shrink
 
@@ -206,16 +205,27 @@ class bert_rec(nn.Module):
         
         self.test = test
         
-        self.summary_linear = nn.Linear(768, args.embed_dim)
+        self.summary_layer = nn.Sequential(
+            nn.Linear(args.summary_dim, args.summary_dim//2),
+            nn.SiLU(),
+            nn.Linear(args.summary_dim//2, args.embed_dim)
+            # <<-- 여기 활성화 함수를 꼭 넣어야 하는가?
+            # 아니라곤 하는데, 나중에 실험할 예정
+            )
         
         self.embedding = nn.Embedding(args.num_embeddings, args.embed_dim, padding_idx = 0)
         self.encoders = nn.ModuleList([encoder(args) for _ in range(args.num_heads)])
-        self.output_linear = nn.Linear(args.embed_dim, 1)
+        
+        self.output_layer = nn.Sequential(
+            nn.Linear(args.embed_dim, args.embed_dim//2),
+            nn.SiLU(),
+            nn.Linear(args.embed_dim//2, 1)
+            )
         
         '''
             summary_vector 불러와서 embedding으로 저장하기
         '''
-        self.summary_embedding = load_summary_vector()
+        self.summary_embedding = load_summary_vector(args)
 
     def forward(self, x: torch.Tensor):
         
@@ -226,7 +236,7 @@ class bert_rec(nn.Module):
         # 저장된 embedding을 불러와서
         summary_embedding = self.summary_embedding(summary_index)
         # 차원도 맞출 겸, linear를 한 번 거친다. 768 -> embedding_dim
-        summary_state = self.summary_linear(summary_embedding)
+        summary_state = self.summary_layer(summary_embedding)
         
         # 나머지는 사실상 원본
         state = x[:,1:]
@@ -244,15 +254,16 @@ class bert_rec(nn.Module):
             state = l(state)
 
         # 나가기 전에 linaer 한 번 거치기: embedding_dim -> 단일 출력 변환
-        hidden_state = self.output_linear(state)
+        hidden_state = self.output_layer(state)
         output = hidden_state[:,0].squeeze()
         return output
     
 # summary_vector initializer
-def load_summary_vector():
-    with open("./data/text_vector/summaries.pkl", "rb") as f:
+def load_summary_vector(args):
+    with open(f"{args.summary_path}" + "/summary_vector/summaries.pkl", "rb") as f:
         kv_dict = pickle.load(f)   # {key: np.ndarray} 구조라고 가정
-        
+    
+    
     num_embedding = len(kv_dict)
     dim_embedding = len(kv_dict[next(iter(kv_dict))])
     
@@ -266,7 +277,12 @@ def load_summary_vector():
     
     return vector_rag
 
-
+# activation에 대한 모델 성능 실험을 위한 함수
+def select_activation(args):
+    if args.activation.lower() == "relu":
+        return nn.ReLU()
+    if args.activation.lower() == "silu":
+        return nn.SiLU()
 
 # 현재
 # 1. location 전처리 = 기본으로 해치움
