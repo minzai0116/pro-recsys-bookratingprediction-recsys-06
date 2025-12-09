@@ -20,6 +20,7 @@ def main(args):
 
     ######################## Argument Setting
     is_sklearn = getattr(args.model_args[args.model], 'is_sklearn', False) # Default -> False
+    is_stratifiedkfold = getattr(args.model_args[args.model], 'is_stratifiedkfold', False) # is_stratifiedkfold 인자 설정
 
     ######################## LOAD DATA
     datatype = args.model_args[args.model].datatype
@@ -31,7 +32,8 @@ def main(args):
     data = data_load_fn(args)
 
     print(f'--------------- {args.model} Train/Valid Split ---------------')
-    data = data_split_fn(args, data)
+    if not is_stratifiedkfold: # Stratified K Fold를 실행할 때는 split 하지 않음. DL 모델도 Stratified K Fold하려면 수정해야 함
+        data = data_split_fn(args, data)
     if data_loader_fn: # 해당 데이터 모듈에 Data_loader 있을때 에만(딥러닝 모델) 데이터로더 사용
         data = data_loader_fn(args, data)
 
@@ -65,8 +67,12 @@ def main(args):
     ######################## TRAIN
     # nn모듈일때랑 sklearn일때 train 함수가 각각 다르니까 알아서 잘 지정임 위에서 getattr 한거랑 비슷한거
     if is_sklearn:
-        train = train_module.sklearn_train
-        test = train_module.sklearn_test
+        if is_stratifiedkfold: # Stratified K Fold 사용 설정
+            train = train_module.skf_train
+            test = train_module.skf_test
+        else:
+            train = train_module.sklearn_train
+            test = train_module.skf_test
     else:
         train = train_module.train
         test = train_module.test
