@@ -22,7 +22,7 @@ build/
 *.h5
 *.pth
 *.pt
-data/
+/data/
 dataset/
 saved/
 submit/
