@@ -172,7 +172,7 @@ def sklearn_v3_data_preprocess(args, data):
     # 3. 피처 정의
     user_categorical = ['user_id', 'loc_city', 'loc_state', 'loc_country']
     user_numeric = ['age']
-    book_categorical = ['isbn', 'book_title', 'book_author', 'publisher', 'language', 'category']
+    book_categorical = ['isbn', 'book_author', 'publisher', 'language', 'category']
     book_numeric = ['year_of_publication']
 
     # 4. Train 데이터 merge
