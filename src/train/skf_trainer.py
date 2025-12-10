@@ -91,10 +91,13 @@ def train(args, model, data, logger, setting):
         msg = f'\tTrain {metric_name.upper()}: {train_score:.3f} | Valid {metric_name.upper()}: {valid_score:.3f} '
         print(msg)
 
+        # log 파일 생성
         logger.log(epoch=fold+1, train_loss=train_score, valid_loss=valid_score, step_name='fold', total_steps=n_splits)
 
+        # fold별 최종 점수 logging
         if args.wandb:
             wandb.log({
+                'fold': fold+1,
                 f'Fold_{fold+1}_Train_{metric_name.upper()}': train_score,
                 f'Fold_{fold+1}_Valid_{metric_name.upper()}': valid_score
                 })
