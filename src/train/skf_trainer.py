@@ -99,8 +99,8 @@ def train(args, model, data, logger, setting):
         if args.wandb:
             wandb.log({
                 'fold': fold+1,
-                f'Fold_{fold+1}_Train_{metric_name.upper()}': train_score,
-                f'Fold_{fold+1}_Valid_{metric_name.upper()}': valid_score
+                f'Train_{metric_name.upper()}_per_fold': train_score,
+                f'Valid_{metric_name.upper()}_per_fold': valid_score
                 })
             
         # Feature Importance 누적
