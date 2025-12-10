@@ -96,6 +96,57 @@ def remove_noise_features(users, books, train_ratings, threshold=1):
     return users_, books_
 
 
+def add_count_features(X_train, X_valid, test, books, train_full):
+    """
+    train 기준으로 user, book, author의 rating count를 피처로 추가
+
+    Parameters:
+    - X_train, X_valid, test: 분할된 데이터셋 (이미 book_author 포함)
+    - books: book 메타데이터 (book_author 포함)
+    - train_full: 전체 train 데이터 (count 계산용)
+    """
+    print(">>> Adding count features...")
+
+    # 1. Train에서 count 계산 (data leakage 방지)
+    user_counts = train_full['user_id'].value_counts().to_dict()
+    book_counts = train_full['isbn'].value_counts().to_dict()
+
+    # 저자별 count를 위해 isbn -> author 매핑 필요
+    train_with_author = train_full.merge(books[['isbn', 'book_author']], on='isbn', how='left')
+    author_counts = train_with_author['book_author'].value_counts().to_dict()
+
+    print(f"    User count range: {min(user_counts.values())} ~ {max(user_counts.values())}")
+    print(f"    Book count range: {min(book_counts.values())} ~ {max(book_counts.values())}")
+    print(f"    Author count range: {min(author_counts.values())} ~ {max(author_counts.values())}")
+
+    # 2. 각 데이터셋에 count 피처 추가하는 함수
+    def apply_counts(df):
+        df = df.copy()
+
+        # User rating count
+        df['user_rating_count'] = df['user_id'].map(user_counts).fillna(0).astype(int)
+
+        # Book rating count
+        df['book_rating_count'] = df['isbn'].map(book_counts).fillna(0).astype(int)
+
+        # Author rating count (이미 존재하는 book_author 사용)
+        if 'book_author' in df.columns:
+            df['author_rating_count'] = df['book_author'].map(author_counts).fillna(0).astype(int)
+        else:
+            print("    Warning: book_author not found in dataframe")
+            df['author_rating_count'] = 0
+
+        return df
+
+    # 3. 각 데이터셋에 적용
+    X_train = apply_counts(X_train)
+    if X_valid is not None:
+        X_valid = apply_counts(X_valid)
+    test = apply_counts(test)
+
+    return X_train, X_valid, test
+
+
 def sklearn_v3_data_preprocess(args, data):
     """
     전처리 메인 함수 - 각 단계를 호출
@@ -103,13 +154,13 @@ def sklearn_v3_data_preprocess(args, data):
     print(">>> Processing Context Data...")
 
     # 1. 노이즈 피처 제거 (옵션)
-    threshold = args.threshold
+    threshold = getattr(args, 'threshold', None)
     if threshold is not None and threshold > 0:
         users_processed, books_processed = remove_noise_features(
             data['users'],
             data['books'],
             data['train'],
-            threshold=args.threshold
+            threshold=threshold
         )
     else:
         users_processed = data['users'].copy()
@@ -123,9 +174,6 @@ def sklearn_v3_data_preprocess(args, data):
     user_numeric = ['age']
     book_categorical = ['isbn', 'book_title', 'book_author', 'publisher', 'language', 'category']
     book_numeric = ['year_of_publication']
-
-    categorical_cols = user_categorical + book_categorical
-    numeric_cols = user_numeric + book_numeric
 
     # 4. Train 데이터 merge
     X_train_merged = data['X_train'].merge(users_processed, on='user_id', how='left').merge(
@@ -147,9 +195,26 @@ def sklearn_v3_data_preprocess(args, data):
         users_processed, on='user_id', how='left'
     ).merge(books_processed, on='isbn', how='left')
 
-    # 7. 최종 데이터 준비
+    # 7. Count 피처 추가 (옵션) ⭐
+    add_counts = getattr(args, 'add_count_features', False)
+    if add_counts:
+        X_train_merged, X_valid_merged, test_merged = add_count_features(
+            X_train_merged,
+            X_valid_merged,
+            test_merged,
+            books_processed,
+            data['train']
+        )
+        count_features = ['user_rating_count', 'book_rating_count', 'author_rating_count']
+    else:
+        count_features = []
+
+    # 8. 최종 피처 목록
+    categorical_cols = user_categorical + book_categorical
+    numeric_cols = user_numeric + book_numeric + count_features
     all_cols = categorical_cols + numeric_cols
 
+    # 9. 최종 데이터 준비
     data.update(prepare_final_data(
         X_train_merged,
         X_valid_merged,

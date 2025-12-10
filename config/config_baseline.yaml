@@ -32,6 +32,7 @@ data_args:
         author_threshold: 10 # -1 이하면 안 씁니다.
   sklearn_v3:
         threshold: 5 # 노이즈로 판단할 threshold,-1 이하시 동작안함
+        add_count_features: True # 유저,책,저자당 평가 개수 피쳐 추가여부
 
 model_args:     # model에 해당하는 파라미터만 실질적으로 사용됩니다.
     FM: 
