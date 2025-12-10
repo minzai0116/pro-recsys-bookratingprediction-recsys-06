@@ -95,7 +95,8 @@ def train(args, model, dataloader, logger, setting):
             logger.log(epoch=epoch+1, train_loss=train_loss, valid_loss=valid_loss, valid_metrics=valid_metrics)
             if args.wandb:
                 wandb.log({f'Train {METRIC_NAMES[args.loss]}': train_loss, 
-                           f'Valid {METRIC_NAMES[args.loss]}': best_valid, **valid_metrics})
+                           f'Valid {METRIC_NAMES[args.loss]}': valid_loss, 
+                           f'Best_Valid {METRIC_NAMES[args.loss]}': best_valid, **valid_metrics})
         else:  # valid 데이터가 없을 경우
             print(msg)
             logger.log(epoch=epoch+1, train_loss=train_loss)
