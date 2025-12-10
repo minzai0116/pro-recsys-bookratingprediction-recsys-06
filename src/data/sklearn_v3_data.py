@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
+
 """
 지역 전처리가 이미 된 데이터를 받습니다. 
+스레드홀드 이하의 상호작용이 있는 피쳐를 무시합니다.
 """
 
 
@@ -101,13 +103,13 @@ def sklearn_v3_data_preprocess(args, data):
     print(">>> Processing Context Data...")
 
     # 1. 노이즈 피처 제거 (옵션)
-    threshold = getattr(args.dataset, 'noise_threshold', None)
+    threshold = args.threshold
     if threshold is not None and threshold > 0:
         users_processed, books_processed = remove_noise_features(
             data['users'],
             data['books'],
             data['train'],
-            threshold=threshold
+            threshold=args.threshold
         )
     else:
         users_processed = data['users'].copy()

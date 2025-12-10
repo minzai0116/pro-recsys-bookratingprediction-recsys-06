@@ -31,6 +31,7 @@ data_args:
         isbn_threshold: 8 # -1 이하면 안 씁니다.
         author_threshold: 10 # -1 이하면 안 씁니다.
   sklearn_v3:
+        threshold: 5 # 노이즈로 판단할 threshold,-1 이하시 동작안함
 
 model_args:     # model에 해당하는 파라미터만 실질적으로 사용됩니다.
     FM: 
