@@ -8,3 +8,4 @@ from .FM_Image import Image_FM, Image_DeepFM, ResNet_DeepFM
 from .FM_Text import Text_FM, Text_DeepFM
 from .CatBoost import CatBoost
 from .bert_JHD import bert_rec
+from .tab_JHD import tab_rec
