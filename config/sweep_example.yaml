@@ -33,7 +33,7 @@ parameters:
         value: 'bert_rec: regularization_test'
     
     seed:           # 
-        value: 0 # [0,1,2,3,4]
+        values: [0, 1, 2, 3, 4] # [0,1,2,3,4]
 
 
     model_args:     #
@@ -55,25 +55,27 @@ parameters:
 
                     # bert_rec args
                     num_layers: 
-                        value:  2               # encoder? ??? self_attention ??
+                        values:  [1, 2, 3, 4]               # encoder? ??? self_attention ??
                     summary_dim: 
                         value:  768            # ?? ??? ?? summary vector? ??
                     activation: 
-                        value:  SiLU            # ????? ?? : [ ReLU, SiLU ]  <<- ??? ? ??? ??
+                        values:  [SiLU, ReLU]            # ????? ?? : [ ReLU, SiLU ]  <<- ??? ? ??? ??
 
                     # self_attention arg
                     num_embeddings : 
-                        value:  280000     # ??? ?? = ?? ??? ?? ?, 271294
+                        values:  [300000, 280000]     # ??? ?? = ?? ??? ?? ?, 271294
                     embed_dim: 
-                        value:  16               # ???? ?? (2? ?? ??)
+                        values:  [16, 32, 64]               # ???? ?? (2? ?? ??)
                     num_heads: 
                         value:  4                # encoder?? multihead ?? (??, embed_dim? ???? ??, 2? ?? ??)
                     dropout: 
                         value:  0.05               # MLP_Base?? ???? ??
+                    threshold:
+                        values: [0.01, 0.05, 0.1]
 
                     # FFN arg
                     extend_dim: 
-                        value:  32 
+                        values:  [64, 128, 256] 
 
     dataset:
         parameters:
@@ -85,7 +87,7 @@ parameters:
     dataloader:
         parameters:
             batch_size:         # 
-                value: 1024    #[512, 1024, 2048]
+                values: [512, 1024, 2048, 4096, 8192]    #[512, 1024, 2048]
             shuffle:           # 
                 value: True
             num_workers:        # 
@@ -98,7 +100,7 @@ parameters:
             args:
                 parameters:
                     optimizer_lr:
-                        value: 5e-3
+                        values: [5e-3, 1e-3, 5e-4]
                     optimizer_weight_decay:
                         value: 1e-4
                     optimizer_amsgrad:
@@ -107,8 +109,14 @@ parameters:
     loss:           #  (https://pytorch.org/docs/stable/nn.html#loss-functions)
         value: RMSELoss      # 
     
+    regularization:
+        values : [True, False]
+
     regularize_lambda: 
         values : [1e-5, 5e-6, 1e-6]     # 
+    
+    STE:
+        values : [True, False]
 
     
     lr_scheduler:
@@ -138,7 +146,7 @@ parameters:
     train:
         parameters:
             epochs:             
-                value: 10
+                value: 20
             log_dir:            
                 value: saved/log
             ckpt_dir:           

@@ -63,6 +63,7 @@ class attention_head(nn.Module):
         
         self.test = test
         
+        self.threshold = args.threshold
         self.num_heads = args.num_heads
         self.head_dims = args.embed_dim // args.num_heads
         self.scalar_factor = args.embed_dim ** 0.5
@@ -81,7 +82,7 @@ class attention_head(nn.Module):
         V = self.V_w(x)
         
         self_attention = Q@K.transpose(-1, -2) / self.scalar_factor
-        attention_map = self.softmax(self_attention)
+        attention_map = thresholded_softmax(self_attention, threshold = self.threshold, dim = -1)
         latent_state = attention_map@V
         
         return latent_state
@@ -283,6 +284,12 @@ def select_activation(args):
         return nn.ReLU()
     if args.activation.lower() == "silu":
         return nn.SiLU()
+    
+def thresholded_softmax(x, threshold, dim=-1):
+    s = torch.nn.functional.softmax(x, dim=dim)
+    s = torch.where(s < threshold, 0, s)
+    s = s / (s.sum(dim=dim, keepdim=True) + 1e-12)
+    return s
 
 # 현재
 # 1. location 전처리 = 기본으로 해치움

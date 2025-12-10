@@ -123,9 +123,11 @@ if __name__ == "__main__":
     arg('--run_name', '--rn', '-rn', '--r', '-r', type=str,
         help='wandb에서 사용할 run 이름을 설정할 수 있습니다.')
     
-    arg('--memo', type=str)
-    arg('--regularization', type=ast.literal_eval)
-    arg('--regularize_lambda', type=ast.literal_eval)
+    arg('--STE', type=bool)
+    arg('--threshold', type=float)                       # softmax threshold : 이 값 이하의 softmax는 탈락시킴
+    arg('--memo', type=str)                                         # test group 명시화를 위해 memo 변경
+    arg('--regularization', type=ast.literal_eval)                  # Lasso 적용을 위한 실험
+    arg('--regularize_lambda', type=ast.literal_eval)               
     arg('--model_args', '--ma', '-ma', type=ast.literal_eval)
     arg('--dataloader', '--dl', '-dl', type=ast.literal_eval)
     arg('--dataset', '--dset', '-dset', type=ast.literal_eval)
@@ -133,7 +135,7 @@ if __name__ == "__main__":
     arg('--loss', '-l', '--l', type=str)
     arg('--lr_scheduler', '-lr', '--lr', type=ast.literal_eval)
     arg('--metrics', '-met', '--met', type=ast.literal_eval)
-    arg('--train', '-t', '--t', type=ast.literal_eval)
+    arg('--train', '-t', '--t', type=ast.literal_eval)              
 
     
     args = parser.parse_args()
