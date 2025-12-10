@@ -283,6 +283,8 @@ def bert_data_load(args):
     train_df = remain_train_features_only(train_df)
     test_df = remain_train_features_only(test_df)
     
+    test_df = test_df.drop('rating', axis = 1)
+    
     # 5. data 구성하기
     data = {
             'train':train_df,
