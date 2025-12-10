@@ -13,7 +13,6 @@ build/
 
 # Jupyter
 .ipynb_checkpoints
-*.ipynb
 
 # 데이터 & 결과물
 *.csv
