@@ -25,7 +25,7 @@ def main(args):
     ######################## LOAD DATA
     datatype = args.model_args[args.model].datatype
     data_load_fn = getattr(data_module, f'{datatype}_data_load')  # e.g. basic_data_load()
-    data_split_fn = getattr(data_module, f'{datatype}_data_split')  # e.g. basic_data_split()
+    data_split_fn = getattr(data_module, f'{datatype}_data_split', None)  # e.g. basic_data_split()
     data_loader_fn = getattr(data_module, f'{datatype}_data_loader', None)  # Default -> None
 
     print(f'--------------- {args.model} Load Data ---------------')

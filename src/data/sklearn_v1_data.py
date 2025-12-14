@@ -145,7 +145,7 @@ def split_location(x: str) -> list:
 
 def remove_noise_features(users, books, train_ratings, threshold=1):
     """
-    train_ratings 기준으로 상호작용이 threshold 이하인 카테고리 값 제거
+    train_ratings 기준으로 상호작용이 threshold 이하인 카테고리 값 others로 
     """
     users_ = users.copy()
     books_ = books.copy()
@@ -218,6 +218,9 @@ def process_sklearn_v1_data(users, books):
                 users_.loc[idx, 'location_state'] = fill_state
 
     users_ = users_.drop(['location', 'location_list'], axis=1)
+
+    # book 결측치 보완
+    books_['book_author'] = books_['book_author'].replace('Not Applicable (Na )', np.nan)
 
     return users_, books_
 

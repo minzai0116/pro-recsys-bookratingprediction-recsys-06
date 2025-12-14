@@ -7,6 +7,7 @@ from sklearn.base import clone
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from .sklearn_trainer import normalize_metric_name, calculate_metrics, log_feature_importance # 나중에 헬퍼 파일로 따로 모으는 것을 고려
 from sklearn.model_selection import StratifiedKFold
+from wandb.integration.catboost import WandbCallback
 
 METRIC_FUNCTIONS = {
     'rmse': lambda y_true, y_pred: np.sqrt(mean_squared_error(y_true, y_pred)),
@@ -75,7 +76,7 @@ def train(args, model, data, logger, setting):
         
         # 모델 학습
         current_model = clone(model) # 새로 학습하기 위해 모델 초기화 
-        current_model.fit(X_t, y_t, eval_set=[(X_v, y_v)])
+        current_model.fit(X_t, y_t, eval_set=[(X_v, y_v)], callbacks=[WandbCallback()])
 
         # Train Score
         main_metric = args.metrics[-1] # args.metrics[0]는 MSELoss 아닌가? RMSE를 봐야하는거 아닌가? -> args.metrics[-1]로 수정
@@ -91,12 +92,15 @@ def train(args, model, data, logger, setting):
         msg = f'\tTrain {metric_name.upper()}: {train_score:.3f} | Valid {metric_name.upper()}: {valid_score:.3f} '
         print(msg)
 
+        # log 파일 생성
         logger.log(epoch=fold+1, train_loss=train_score, valid_loss=valid_score, step_name='fold', total_steps=n_splits)
 
+        # fold별 최종 점수 logging
         if args.wandb:
             wandb.log({
-                f'Fold_{fold+1}_Train_{metric_name.upper()}': train_score,
-                f'Fold_{fold+1}_Valid_{metric_name.upper()}': valid_score
+                'fold': fold+1,
+                f'Train_{metric_name.upper()}_per_fold': train_score,
+                f'Valid_{metric_name.upper()}_per_fold': valid_score
                 })
             
         # Feature Importance 누적
