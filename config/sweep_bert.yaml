@@ -1,0 +1,161 @@
+# sweep_example.yaml for FM Model
+
+program: main.py
+name: Sweep Lasso - bert_rec
+project: book-rating-prediction
+method: grid
+metric:
+    goal: minimize
+    name: 'Valid RMSE'
+description: |-
+    bert_rec test : regularize lambd
+
+parameters:
+    memo:
+        value: "Regularization_test"
+
+
+    config:         # configuration
+        value: './config/config_baseline.yaml'
+    predict:
+        value: False
+    checkpoint:
+        value: ''
+    device:         # cpu, cuda, mps
+        value: cuda
+    model:          # 
+        value: bert_rec
+    wandb:          # wandb 
+        value: True
+    wandb_project:  # wandb 
+        value: 'book-rating-prediction' 
+    run_name:       # wandb 
+        value: 'bert_rec: regularization_test'
+    
+    seed:           # 
+        values: [0, 1, 2, 3, 4] # [0,1,2,3,4]
+
+
+    model_args:     #
+        parameters:
+            bert_rec:         # 
+                parameters:
+                    is_sklearn: 
+                        value: False
+
+                    # ??? ??
+                    datatype: 
+                        value: bert             # ?? ??? : bert
+                    prepared_summary: 
+                        value: True     # ??? summary vector? ?????? ??.
+                    pretrained_model:
+                        value: 'bert-base-uncased'   # ??? ???? ??? ???? ??
+                    summary_path: 
+                        value: data/
+
+                    # bert_rec args
+                    num_layers: 
+                        values:  [1, 2, 3, 4]               # encoder? ??? self_attention ??
+                    summary_dim: 
+                        value:  768            # ?? ??? ?? summary vector? ??
+                    activation: 
+                        values:  [SiLU, ReLU]            # ????? ?? : [ ReLU, SiLU ]  <<- ??? ? ??? ??
+
+                    # self_attention arg
+                    num_embeddings : 
+                        values:  [300000, 280000]     # ??? ?? = ?? ??? ?? ?, 271294
+                    embed_dim: 
+                        values:  [16, 32, 64]               # ???? ?? (2? ?? ??)
+                    num_heads: 
+                        value:  4                # encoder?? multihead ?? (??, embed_dim? ???? ??, 2? ?? ??)
+                    dropout: 
+                        value:  0.05               # MLP_Base?? ???? ??
+                    threshold:
+                        values: [0.01, 0.05, 0.1]
+
+                    # FFN arg
+                    extend_dim: 
+                        values:  [64, 128, 256] 
+
+    dataset:
+        parameters:
+            data_path:          # 
+                value: data/
+            valid_ratio:        # Train / Vaildation split
+                value: 0.2
+
+    dataloader:
+        parameters:
+            batch_size:         # 
+                values: [512, 1024, 2048, 4096, 8192]    #[512, 1024, 2048]
+            shuffle:           # 
+                value: True
+            num_workers:        # 
+                value: 0
+
+    optimizer:
+        parameters:
+            type:
+                value: Adam
+            args:
+                parameters:
+                    optimizer_lr:
+                        values: [5e-3, 1e-3, 5e-4]
+                    optimizer_weight_decay:
+                        value: 1e-4
+                    optimizer_amsgrad:
+                        value: True
+
+    loss:           #  (https://pytorch.org/docs/stable/nn.html#loss-functions)
+        value: RMSELoss      # 
+    
+    regularization:
+        values : [True, False]
+
+    regularize_lambda: 
+        values : [1e-5, 5e-6, 1e-6]     # 
+    
+    STE:
+        values : [True, False]
+
+    
+    lr_scheduler:
+        parameters:
+            use:                        
+                value: True #[True, False]
+            type:                       
+                value: ReduceLROnPlateau 
+            args:                       
+                parameters:
+                    mode:               
+                        value: min
+                    factor:             
+                        value: 0.1
+                    patience:           
+                        value: 5
+                    cooldown:          
+                        value: 1
+                    step_size:          
+                        value: 10
+                    gamma:              
+                        value: 0.1
+
+    metrics:       
+        value: [RMSELoss] 
+
+    train:
+        parameters:
+            epochs:             
+                value: 20
+            log_dir:            
+                value: saved/log
+            ckpt_dir:           
+                value: saved/checkpoint    
+            submit_dir:         
+                value: saved/submit
+            save_best_model:    
+                value: True
+            resume:             
+                value: False
+            resume_path:
+                value: ''
