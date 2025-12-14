@@ -195,3 +195,4 @@ if __name__ == "__main__":
 
     if config_yaml.wandb:
         wandb.finish()
+        

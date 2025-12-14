@@ -168,3 +168,4 @@ train:
 stratifiedkfold:    # Stratified K Fold 설정값
     n_splits: 5     # 데이터를 몇개로 자를건지 설정
     shuffle: True   # 데이터를 섞을건지 설정
+    
