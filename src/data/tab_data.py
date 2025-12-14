@@ -114,7 +114,7 @@ def process_context_data(users, books):
     return users_, books_
 
 
-# 학습에 입력시킬 열만 남기기 + [CLS] 토큰 추가 + 각 원소를 고유 index로 변환
+# 학습에 입력시킬 열만 남기기 + 각 원소를 고유 index로 변환
 def remain_train_features_only(rating):
     '''
     ##################
@@ -245,7 +245,8 @@ def tab_data_load(args):
         1) csv 읽어오고
         2) 전처리함수 거치고 ( + summart_vect가 없으면 생성)
         3) rating에 user_id, isbn 기준으로 merge
-        4) 
+        4) test에서는 rating을 제외하고 반환
+        5) model에서 embedding을 생성하기 위한, dim_feature(feature 갯수), cardinality(각 feature에 존재하는 고유한 원소 갯수)
     '''
     
     # 1. 데이터 로드
@@ -273,7 +274,7 @@ def tab_data_load(args):
     
     test_df = test_df.drop('rating', axis=1)
     
-    args.model_args.tab_rec.cardinality = cardinality
+    args.model_args.tab_rec.cardinality = cardinality # ex) column A : {1, 3, 3, 4, 1} ==> {1,3,4} ==> 3
     args.model_args.tab_rec.dim_feature = len(cardinality)
     
     # 5. data 구성하기

@@ -85,7 +85,7 @@ class attention_head(nn.Module):
         attention_map = thresholded_softmax(self_attention, threshold = self.threshold, dim = -1)
         latent_state = attention_map@V
         
-        return latent_state
+        return latent_state, attention_map
 
 # done
 class multihead_attention(nn.Module):
@@ -124,8 +124,13 @@ class multihead_attention(nn.Module):
     def forward(self, x: torch.Tensor):
         
         # state에서 latent 세트를 num_heads의 갯수만큼 생성 : latent = [latent_1, latent_2 ....]
-        latents = [l(x) for l in self.Heads]
-        
+        latents = []
+        attention_map = []
+        for l in self.Heads:
+            latent, att_map = l(x)
+            latents.append(latent)
+            attention_map.append(att_map)
+            
         # latent를 concat: x = latent_1 + lantent_2 ....
         residual = torch.cat(latents, axis=-1)
         
@@ -133,7 +138,7 @@ class multihead_attention(nn.Module):
         #x_res = x + self.drop(self.batch(residual))
         x_res = x + self.drop(residual)
         
-        return x_res
+        return x_res, attention_map
 
 # done
 class encoder(nn.Module):
@@ -159,7 +164,7 @@ class encoder(nn.Module):
         super().__init__()
         
         self.test = test
-
+        
         # layer_norm
         # self.layer_norm = nn.LayerNorm([args.batch, args.num_features, args.embed_dim])
         self.layer_norm_1 = nn.LayerNorm(args.embed_dim)
@@ -177,12 +182,13 @@ class encoder(nn.Module):
     def forward(self, x: torch.Tensor):
         
         x_norm = self.layer_norm_1(x)
-        x = x + self.drop_1(self.multihead(x_norm))
+        res, attention_map = self.multihead(x_norm)
+        x = x + self.drop_1(res)
         
         x_norm = self.layer_norm_2(x)
         x = x + self.drop_2(self.FF(x_norm))
         
-        return x
+        return x, attention_map
 
 # done
 class tab_rec(nn.Module):
@@ -217,10 +223,12 @@ class tab_rec(nn.Module):
         
         # 임베딩 관리는 따로
         self.embedding = nn.ModuleList([nn.Embedding(cardi, args.embed_dim) for cardi in args.cardinality])
-        self.encoders = nn.ModuleList([encoder(args) for _ in range(args.num_heads)])
+        self.encoders = nn.ModuleList([encoder(args) for _ in range(args.num_layers)])
         
         self.output_layer = nn.Sequential(
-            nn.Linear(args.embed_dim*args.dim_feature, self.mlp_hidden),
+            # +1 은 summary를 위해. -> summary 안 쓰는게 더 성능 잘 나오는듯?
+            #nn.Linear(args.embed_dim*(args.dim_feature+1), self.mlp_hidden)
+            nn.Linear(args.embed_dim*(args.dim_feature), self.mlp_hidden),
             nn.SiLU(),
             nn.Linear(self.mlp_hidden, 1)
             )
@@ -253,14 +261,16 @@ class tab_rec(nn.Module):
         x = torch.stack(embs, dim=1)
         
         # encoding 실행
+        attention_map = []
         for l in self.encoders:
-            state = l(x)
+            x, att_map = l(x)
+            attention_map.append(att_map)
 
-        state = state.flatten(1)
+        x = x.flatten(1)
 
         # 나가기 전에 linaer 한 번 거치기: embedding_dim -> 단일 출력 변환
-        output = self.output_layer(state)
-        return output.squeeze(-1)
+        output = self.output_layer(x)
+        return output.squeeze(-1), attention_map
     
 # summary_vector initializer
 def load_summary_vector(args):
