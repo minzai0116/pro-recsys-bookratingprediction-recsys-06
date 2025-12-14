@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import os
 import json
 import re
@@ -10,8 +9,8 @@ from tqdm import tqdm
 
 # [설정] 환경 및 하드웨어 설정
 class Config:
-    # 1. 데이터 경로
-    DATA_PATH = r""
+    # 1. 데이터 경로 (본인의 경로에 맞게 수정하세요)
+    DATA_PATH = r"" 
     
     # 2. Ollama API 설정
     API_KEY = "ollama"
@@ -20,7 +19,7 @@ class Config:
     
     LOC_BATCH_SIZE = 10
     LOC_WORKERS = 3
-    CAT_BATCH_SIZE = 5
+    CAT_BATCH_SIZE = 20
     CAT_WORKERS = 2
 
 headers = {
@@ -38,7 +37,7 @@ AMAZON_TARGET_CATEGORIES = [
     "Self-help", "Sports & Outdoors", "Travel", "Unknown"
 ]
 
-# [Helper] 유틸리티 함수
+# 유틸리티 함수
 def clean_text(val):
     """텍스트 전처리 및 결측치 제거"""
     if pd.isna(val): return 'Unknown'
@@ -70,7 +69,7 @@ def call_ollama_api(messages):
         time.sleep(1)
         raise e
 
-# [Module 1] Location 처리 (City, State, Country)
+# Location 처리
 def get_location_mapping(unique_list, cache_path):
     # 캐시 로드
     if os.path.exists(cache_path):
@@ -92,10 +91,10 @@ def get_location_mapping(unique_list, cache_path):
         loc_str = str(loc).strip()
         parts = [p.strip() for p in loc_str.split(',')]
         
-        if len(parts) == 3: # "City, State, Country"
-            city, state, country = parts[0], parts[1], parts[2]
-            if city and state and country:
-                mapping[loc] = {"city": city.title(), "state": state.title(), "country": country.title()}
+        if len(parts) == 3: 
+            state, country = parts[1], parts[2]
+            if state and country:
+                mapping[loc] = {"state": state.title(), "country": country.title()}
             else:
                 api_targets.append(loc)
         else:
@@ -111,12 +110,14 @@ def get_location_mapping(unique_list, cache_path):
     # 2차: LLM 추론
     batches = [api_targets[i:i+Config.LOC_BATCH_SIZE] for i in range(0, len(api_targets), Config.LOC_BATCH_SIZE)]
     
+    # 프롬프트
     system_prompt = """
-    Analyze location strings. Return JSON: {"input_string": {"city": "...", "state": "...", "country": "..."}}
+    Analyze location strings. Return JSON: {"input_string": {"state": "...", "country": "..."}}
     Rules:
-    1. Infer missing parts based on the City (e.g., "Chicago" -> State: "Illinois", Country: "USA").
-    2. If State is not applicable, use City or Province.
-    3. Use "Unknown" if impossible to guess.
+    1. Infer State and Country based on the input text.
+    2. Even if a City is provided, DO NOT output the City. Only output State and Country.
+    3. If State is not applicable (e.g., small countries), use 'n/a' or the Country name.
+    4. Use "Unknown" if impossible to guess.
     """
 
     def process_batch(batch_data):
@@ -150,15 +151,16 @@ def process_location(users, cache_path):
     col = next((c for c in users.columns if c.lower() == 'location'), None)
     if not col: return users
 
-    print("    [Location] Mapping Start...")
+    print("[Location] Mapping Start...")
     unique_vals = users[col].dropna().astype(str).unique().tolist()
+    # 매핑 함수 호출
     mapping = get_location_mapping(unique_vals, cache_path)
     
-    users['city'] = users[col].map(lambda x: mapping.get(str(x), {}).get('city'))
+    # State와 Country만 생성
     users['state'] = users[col].map(lambda x: mapping.get(str(x), {}).get('state'))
     users['country'] = users[col].map(lambda x: mapping.get(str(x), {}).get('country'))
     
-    for c in ['city', 'state', 'country']:
+    for c in ['state', 'country']:
         users[c] = users[c].apply(clean_text)
     
     country_map = {"Usa": "USA", "United States": "USA", "Uk": "United Kingdom", "United Kingdom": "United Kingdom"}
@@ -167,8 +169,8 @@ def process_location(users, cache_path):
     users.drop(col, axis=1, inplace=True)
     return users
 
-# [Module 2] Category 처리 (Title + Summary)
-def get_category_mapping_smart(book_data_list, cache_path):
+# Category 처리
+def get_category_mapping_smart(category_data_list, cache_path):
     if os.path.exists(cache_path):
         try:
             with open(cache_path, 'r', encoding='utf-8') as f:
@@ -178,24 +180,26 @@ def get_category_mapping_smart(book_data_list, cache_path):
     else:
         mapping = {}
 
-    target_list = [item for item in book_data_list if item['id'] not in mapping]
-    print(f"    [Category] Total Books: {len(book_data_list)}, To Process: {len(target_list)}")
+    target_list = [item for item in category_data_list if item['text'] not in mapping]
+    print(f"    [Category] Total Unique Categories: {len(category_data_list)}, To Process: {len(target_list)}")
     
     if not target_list: return mapping
 
     batches = [target_list[i:i+Config.CAT_BATCH_SIZE] for i in range(0, len(target_list), Config.CAT_BATCH_SIZE)]
     
     system_prompt = f"""
-    Classify books into ONE of these categories: {json.dumps(AMAZON_TARGET_CATEGORIES)}.
-    Input JSON: [{{"id": "...", "text": "Title: ... | Summary: ..."}}, ...]
-    Output JSON: {{"id": "CategoryName", "id2": "CategoryName"}}
+    Map the input category string to ONE of these Amazon standard categories: {json.dumps(AMAZON_TARGET_CATEGORIES)}.
+    Input JSON: [{{"text": "Raw Category String"}}, ...]
+    Output JSON: {{"Raw Category String": "StandardCategoryName", ...}}
+    
     Rules:
-    1. Infer the best matching category based on Title and Summary.
-    2. If text is insufficient, choose "Unknown".
+    1. Find the semantically closest standard category based on the input text.
+    2. Example: "Sci-Fi" -> "Science Fiction & Fantasy", "Investing" -> "Business & Money".
+    3. If the input is "Unknown", "NaN", or gibberish, map to "Unknown".
     """
 
     def process_batch(batch_data):
-        minimized = [{"id": b['id'], "text": b['text']} for b in batch_data]
+        minimized = [{"text": b['text']} for b in batch_data]
         msgs = [{"role": "system", "content": system_prompt}, {"role": "user", "content": json.dumps(minimized)}]
         for _ in range(3):
             try:
@@ -204,12 +208,12 @@ def get_category_mapping_smart(book_data_list, cache_path):
                 time.sleep(1)
         return None
 
-    print(f"    [Category] Calling Ollama (Smart Classification)...")
+    print(f"    [Category] Calling Ollama (Category Standardization)...")
     processed_cnt = 0
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=Config.CAT_WORKERS) as executor:
         futures = {executor.submit(process_batch, b): b for b in batches}
-        for future in tqdm(concurrent.futures.as_completed(futures), total=len(batches), desc="Smart Cat API"):
+        for future in tqdm(concurrent.futures.as_completed(futures), total=len(batches), desc="Standardizing Cats"):
             res = future.result()
             if res:
                 mapping.update(res)
@@ -223,37 +227,24 @@ def get_category_mapping_smart(book_data_list, cache_path):
     return mapping
 
 def process_category(books, cache_path):
-    title_col = next((c for c in books.columns if c.lower() in ['book-title', 'title', 'book_title']), None)
-    summary_col = next((c for c in books.columns if c.lower() in ['summary', 'description', 'desc']), None)
-    id_col = next((c for c in books.columns if c.lower() in ['isbn', 'book_id', 'id']), None)
+    cat_col = next((c for c in books.columns if c.lower() in ['category', 'categories', 'cat']), None)
 
-    if not title_col:
-        print("⚠️ [Warning] 책 제목 컬럼을 찾을 수 없어 Category 처리를 건너뜁니다.")
+    if not cat_col:
+        print("⚠️ [Warning] 'Category' 컬럼을 찾을 수 없어 처리를 건너뜁니다.")
         return books
 
-    print("    [Category] Preparing Title + Summary data...")
+    print("[Category] Preparing Raw Category data...")
     
-    if summary_col:
-        books['temp_text'] = books.apply(
-            lambda x: f"Title: {clean_text(x[title_col])} | Summary: {clean_text(x[summary_col])[:300]}", axis=1
-        )
-    else:
-        books['temp_text'] = books[title_col].apply(lambda x: f"Title: {clean_text(x)}")
-
-    if id_col:
-        books['temp_id'] = books[id_col].astype(str)
-    else:
-        books['temp_id'] = books['temp_text'].apply(lambda x: str(hash(x)))
-
-    unique_books = books.drop_duplicates(subset=['temp_id'])
-    data_to_process = unique_books[['temp_id', 'temp_text']].rename(columns={'temp_id': 'id', 'temp_text': 'text'}).to_dict('records')
+    books['temp_category'] = books[cat_col].apply(clean_text)
+    unique_categories = books['temp_category'].unique().tolist()
+    data_to_process = [{'text': cat} for cat in unique_categories]
     
     mapping = get_category_mapping_smart(data_to_process, cache_path)
     
-    print("    [Category] Applying smart map...")
-    books['category'] = books['temp_id'].map(lambda x: mapping.get(str(x), 'Unknown'))
+    print("    [Category] Applying standardized map...")
+    books['category_standard'] = books['temp_category'].map(lambda x: mapping.get(str(x), 'Unknown'))
     
-    books.drop(['temp_text', 'temp_id'], axis=1, inplace=True)
+    books.drop(['temp_category'], axis=1, inplace=True)
     return books
 
 # [Main] 메인 실행 함수
@@ -278,21 +269,21 @@ def main():
         
     print(f"✅ Data Loaded - Users: {len(users)}, Books: {len(books)}")
 
-    # Step 1. Location 처리
+    # Location 처리
     print("\n" + "="*50)
-    print(">>> [Step 1] Processing Location (Infer missing parts)")
+    print(">>> [Step 1] Processing Location (State, Country only)")
     print("="*50)
-    loc_cache = os.path.join(Config.DATA_PATH, 'location_map_cache.json')
+    loc_cache = os.path.join(Config.DATA_PATH, 'location_std_map_cache.json')
     users_processed = process_location(users, loc_cache)
 
-    # Step 2. Category 처리
+    # Category 처리
     print("\n" + "="*50)
-    print(">>> [Step 2] Processing Category (Context-Aware)")
+    print(">>> [Step 2] Processing Category (Standardization)")
     print("="*50)
-    cat_cache = os.path.join(Config.DATA_PATH, 'category_map_cache.json')
+    cat_cache = os.path.join(Config.DATA_PATH, 'category_std_map_cache.json')
     books_processed = process_category(books, cat_cache)
 
-    # Step 3. 저장
+    # 저장
     print("\n" + "="*50)
     print(">>> [Step 3] Saving Results...")
     print("="*50)
