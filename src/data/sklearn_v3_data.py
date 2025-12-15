@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+'''
+영진님 코드 리뷰 요청에서, 필요한 부분이 있다고 판단되어 추가하였습니다.
+'''
+
 """
 지역 전처리가 이미 된 데이터를 받습니다. 
 스레드홀드 이하의 상호작용이 있는 피쳐를 무시합니다.

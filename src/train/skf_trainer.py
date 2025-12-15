@@ -9,6 +9,10 @@ from .sklearn_trainer import normalize_metric_name, calculate_metrics, log_featu
 from sklearn.model_selection import StratifiedKFold
 from wandb.integration.catboost import WandbCallback
 
+'''
+영진님의 코드리뷰 요청 파일입니다.
+'''
+
 METRIC_FUNCTIONS = {
     'rmse': lambda y_true, y_pred: np.sqrt(mean_squared_error(y_true, y_pred)),
     'mse': mean_squared_error,
