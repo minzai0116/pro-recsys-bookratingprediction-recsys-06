@@ -25,6 +25,8 @@ def main(args):
     ######################## LOAD DATA
     datatype = args.model_args[args.model].datatype
     data_load_fn = getattr(data_module, f'{datatype}_data_load')  # e.g. basic_data_load()
+    data_split_fn = getattr(data_module, f'{datatype}_data_split')  # e.g. basic_data_split()
+    data_preprocess_fn = getattr(data_module, f'{datatype}_data_preprocess', None) # 일단 신경 안 쓰시고 하세요, 나중에 리팩토링 할게요;;
     data_split_fn = getattr(data_module, f'{datatype}_data_split', None)  # e.g. basic_data_split()
     data_loader_fn = getattr(data_module, f'{datatype}_data_loader', None)  # Default -> None
 
@@ -34,7 +36,16 @@ def main(args):
     if not is_stratifiedkfold: # Stratified K Fold를 실행할 때는 split 하지 않음. DL 모델도 Stratified K Fold하려면 수정해야 함
         print(f'--------------- {args.model} Train/Valid Split ---------------')
         data = data_split_fn(args, data)
+    print(f'--------------- {args.model} Train/Valid Split ---------------')
+    data = data_split_fn(args, data)
+
+    print(f'--------------- {args.model} preprocessing Data ---------------')
+    if data_preprocess_fn: # 좀 거지같게 표현 된거 앎, 나중에 고치겠음
+        datatype = args.model_args[args.model]['datatype']
+        data = data_preprocess_fn(args.data_args[datatype], data)
+
     if data_loader_fn: # 해당 데이터 모듈에 Data_loader 있을때 에만(딥러닝 모델) 데이터로더 사용
+        print(f'--------------- {args.model} Loading to Loader ---------------')
         data = data_loader_fn(args, data)
 
     ####################### Setting for Log

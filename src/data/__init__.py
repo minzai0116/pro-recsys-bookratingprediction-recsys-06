@@ -6,3 +6,6 @@ from .sklearn_v1_data import sklearn_v1_data_load, sklearn_v1_data_split
 from .bert_data import bert_data_load, bert_data_loader, bert_data_split
 from .tab_data import tab_data_load, tab_data_loader, tab_data_split
 from .sklearn_v2_data import sklearn_v2_data_load
+
+from .sklearn_v2_data import sklearn_v2_data_load, sklearn_v2_data_split, sklearn_v2_data_preprocess
+from .sklearn_v3_data import sklearn_v3_data_load, sklearn_v3_data_split, sklearn_v3_data_preprocess

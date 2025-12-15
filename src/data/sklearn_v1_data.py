@@ -102,18 +102,24 @@ def sklearn_v1_data_split(args, data):
     data : dict
         분리된 데이터가 추가된 딕셔너리
     """
-    X_train, X_valid, y_train, y_valid = train_test_split(
-        data['train'],
-        data['train_y'],
-        test_size=args.dataset.valid_ratio,
-        random_state=args.seed,
-        shuffle=True
-    )
-    data['X_train'], data['X_valid'] = X_train, X_valid
-    data['y_train'], data['y_valid'] = y_train, y_valid
+    if args.dataset.valid_ratio:
+        X_train, X_valid, y_train, y_valid = train_test_split(
+            data['train'],
+            data['train_y'],
+            test_size=args.dataset.valid_ratio,
+            random_state=args.seed,
+            shuffle=True
+        )
+        data['X_train'], data['X_valid'] = X_train, X_valid
+        data['y_train'], data['y_valid'] = y_train, y_valid
+    else:
+        # valid_ratio가 0이면 전체 데이터를 train으로 사용
+        data['X_train'] = data['train']
+        data['y_train'] = data['train_y']
+        data['X_valid'] = None
+        data['y_valid'] = None
 
     return data
-
 def str2list(x: str) -> list:
     '''문자열을 리스트로 변환하는 함수'''
     return x[1:-1].split(', ')
