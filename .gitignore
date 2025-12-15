@@ -38,6 +38,7 @@ wandb/
 .idea/
 *.swp
 *.swo
+goats/
 
 # OS
 .DS_Store

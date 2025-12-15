@@ -45,7 +45,7 @@ parameters:
 
                     # ??? ??
                     datatype: 
-                        value: bert              # ?? ??? : bert
+                        value: bert             # ?? ??? : bert
                     prepared_summary: 
                         value: True     # ??? summary vector? ?????? ??.
                     pretrained_model:

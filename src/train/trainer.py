@@ -34,6 +34,7 @@ def train(args, model, dataloader, logger, setting):
     else:
         lr_scheduler = None
 
+    best_valid = 1e6
     for epoch in range(args.train.epochs):
         model.train()
         total_loss, train_len = 0, len(dataloader['train_dataloader'])
@@ -46,8 +47,23 @@ def train(args, model, dataloader, logger, setting):
             else:
                 x, y = data[0].to(args.device), data[1].to(args.device)
             y_hat = model(x)
+            
+            if args.STE == True:
+                y_hard = y_hat.round()                   
+                y_hat = y_hat + (y_hard - y_hat).detach()
+            
             loss = loss_fn(y_hat, y.float())
             optimizer.zero_grad()
+            
+            # L1_norm 적용
+            if args.regularization:
+                l1_norm = sum(
+                    p.abs().sum()
+                    for name, p in model.named_parameters()
+                    if "bias" not in name
+                )
+                loss = loss + args.regularize_lambda * l1_norm
+            
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
@@ -60,7 +76,11 @@ def train(args, model, dataloader, logger, setting):
         msg += f'\tTrain Loss ({METRIC_NAMES[args.loss]}): {train_loss:.3f}'
         if args.dataset.valid_ratio != 0:  # valid 데이터가 존재할 경우
             valid_loss = valid(args, model, dataloader['valid_dataloader'], loss_fn)
+            if best_valid > valid_loss:
+                best_valid = valid_loss
+            
             msg += f'\n\tValid Loss ({METRIC_NAMES[args.loss]}): {valid_loss:.3f}'
+            msg += f'\n\tBset_Valid Loss ({METRIC_NAMES[args.loss]}): {best_valid:.3f}'
             if args.lr_scheduler.use and args.lr_scheduler.type == 'ReduceLROnPlateau':
                 lr_scheduler.step(valid_loss)
             
@@ -75,7 +95,8 @@ def train(args, model, dataloader, logger, setting):
             logger.log(epoch=epoch+1, train_loss=train_loss, valid_loss=valid_loss, valid_metrics=valid_metrics)
             if args.wandb:
                 wandb.log({f'Train {METRIC_NAMES[args.loss]}': train_loss, 
-                           f'Valid {METRIC_NAMES[args.loss]}': valid_loss, **valid_metrics})
+                           f'Valid {METRIC_NAMES[args.loss]}': valid_loss, 
+                           f'Best_Valid {METRIC_NAMES[args.loss]}': best_valid, **valid_metrics})
         else:  # valid 데이터가 없을 경우
             print(msg)
             logger.log(epoch=epoch+1, train_loss=train_loss)

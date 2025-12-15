@@ -118,7 +118,7 @@ if __name__ == "__main__":
     arg('--checkpoint', '-ckpt', '--ckpt', type=str, 
         help='학습을 생략할 때 사용할 모델을 설정할 수 있습니다. 단, 하이퍼파라미터 세팅을 모두 정확하게 입력해야 합니다.')
     arg('--model', '-m', '--m', type=str, 
-        choices=['FM', 'FFM', 'DeepFM', 'NCF', 'WDN', 'DCN', 'Image_FM', 'Image_DeepFM', 'Text_FM', 'Text_DeepFM', 'ResNet_DeepFM', 'LightGBM', 'CatBoost'],
+        choices=['FM', 'FFM', 'DeepFM', 'NCF', 'WDN', 'DCN', 'Image_FM', 'Image_DeepFM', 'Text_FM', 'Text_DeepFM', 'ResNet_DeepFM', 'LightGBM', 'CatBoost', 'bert_rec', 'tab_rec'],
         help='학습 및 예측할 모델을 선택할 수 있습니다.')
     arg('--seed', '-s', '--s', type=int,
         help='데이터분할 및 모델 초기화 시 사용할 시드를 설정할 수 있습니다.')
@@ -130,6 +130,12 @@ if __name__ == "__main__":
         help='wandb 프로젝트 이름을 설정할 수 있습니다.')
     arg('--run_name', '--rn', '-rn', '--r', '-r', type=str,
         help='wandb에서 사용할 run 이름을 설정할 수 있습니다.')
+
+    arg('--STE', type=bool)
+    arg('--threshold', type=float)                       # softmax threshold : 이 값 이하의 softmax는 탈락시킴
+    arg('--memo', type=str)                                         # test group 명시화를 위해 memo 변경
+    arg('--regularization', type=ast.literal_eval)                  # Lasso 적용을 위한 실험
+    arg('--regularize_lambda', type=ast.literal_eval)
     arg('--model_args', '--ma', '-ma', type=ast.literal_eval)
     arg('--dataloader', '--dl', '-dl', type=ast.literal_eval)
     arg('--dataset', '--dset', '-dset', type=ast.literal_eval)
@@ -151,6 +157,9 @@ if __name__ == "__main__":
     for key in config_args.keys():
         if config_args[key] is not None:
             config_yaml[key] = config_args[key]
+    #config_yaml = OmegaConf.merge(config_yaml, config_args)
+
+
     # 사용되지 않는 정보 삭제 (학습 시에만)
     if config_yaml.predict == False:
         del config_yaml.checkpoint
@@ -195,4 +204,3 @@ if __name__ == "__main__":
 
     if config_yaml.wandb:
         wandb.finish()
-        
