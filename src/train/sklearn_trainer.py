@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 '''
-영진님의 코드리뷰 요청 파일입니다.
+김태형 코드 리뷰 요청에서, 필요한 부분이 있다고 판단되어 추가하였습니다.
 '''
 
 

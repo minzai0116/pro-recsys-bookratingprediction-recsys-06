@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 '''
-영진님 코드 리뷰 요청에서, 필요한 부분이 있다고 판단되어 추가하였습니다.
+김태형 코드 리뷰 요청에서, 필요한 부분이 있다고 판단되어 추가하였습니다.
 '''
 
 """

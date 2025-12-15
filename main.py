@@ -12,7 +12,7 @@ import src.models as model_module
 import joblib
 
 '''
-영진님 코드 리뷰 요청에서, 필요한 부분이 있다고 판단되어 추가하였습니다.
+김태형 코드 리뷰 요청 - main에서 분기 처리 위주로 부탁드립니다.
 '''
 
 def main(args):
