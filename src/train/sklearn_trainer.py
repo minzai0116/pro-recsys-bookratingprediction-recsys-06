@@ -4,6 +4,11 @@ import joblib
 import pandas as pd
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
+'''
+김태형 코드 리뷰 요청에서, 필요한 부분이 있다고 판단되어 추가하였습니다.
+'''
+
+
 METRIC_FUNCTIONS = {
     'rmse': lambda y_true, y_pred: np.sqrt(mean_squared_error(y_true, y_pred)),
     'mse': mean_squared_error,

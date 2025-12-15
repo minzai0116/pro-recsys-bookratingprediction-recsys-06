@@ -6,6 +6,8 @@ memo: |-
     여러 줄로도 작성 가능
     wandb 사용 시 wandb의 description으로 사용됩니다.
 
+#김태형 코드 리뷰 요청 - config 변수 구조 관련해서 조언 부탁드립니다.
+
 
 # 아래의 일곱 항목들은 argparser로 받은 인자를 우선적으로 사용합니다.
 #   $ python main.py --config config.yaml --seed 2024
