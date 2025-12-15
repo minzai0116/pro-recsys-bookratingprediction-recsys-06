@@ -6,7 +6,9 @@ import time
 import requests
 import concurrent.futures
 from tqdm import tqdm
-
+'''
+민재님의 코드리뷰 요청 파일입니다.
+'''
 # [설정] 환경 및 하드웨어 설정
 class Config:
     # 1. 데이터 경로 (본인의 경로에 맞게 수정하세요)
