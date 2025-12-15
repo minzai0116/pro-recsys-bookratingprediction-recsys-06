@@ -8,6 +8,10 @@ memo: |-
 # 아래의 일곱 항목들은 argparser로 받은 인자를 우선적으로 사용합니다.
 #   $ python main.py --config config.yaml --seed 2024
 #   과 같이 실행할 경우 seed는 0이 아닌 2024로 설정됩니다.
+
+
+#형동님 코드 리뷰 요청에서, 필요한 부분이 있다고 판단되어 추가하였습니다.
+
 predict: False  # 예측할 경우 True로 설정
 checkpoint: 'saved/checkpoints/tab_2_182.pt'   # 예측 시 불러올 모델 경로
 seed: 0         # 시드 고정

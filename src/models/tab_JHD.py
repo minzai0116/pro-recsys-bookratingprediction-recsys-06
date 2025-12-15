@@ -3,6 +3,10 @@ import torch.nn as nn
 import numpy as np
 import pickle
 
+'''
+형동님의 코드리뷰 요청 파일입니다.
+'''
+
 # done
 class FeedForward(nn.Module):
     ''' 

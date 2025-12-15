@@ -11,10 +11,7 @@ import src.train as train_module
 import src.models as model_module
 import joblib
 '''
-지금 sklearn이랑 torch 모델 둘이라서 중간에 if문 좀 많은데, 과해지면 헬퍼함수로 빼거나, 대격변 패치로 data 다루듯이 바꾸겠습니다만
-굳이 안 불편하면 뺐을때 더 꼴뵈기 싫어짐 ㅎㅎ
-
-
+형동님 코드 리뷰 요청에서, 필요한 부분이 있다고 판단되어 추가하였습니다.
 '''
 
 def main(args):

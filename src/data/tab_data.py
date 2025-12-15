@@ -10,7 +10,9 @@ from transformers import AutoTokenizer, AutoModel
 from .basic_data import basic_data_split
 
 import pickle
-
+'''
+형동님의 코드리뷰 요청 파일입니다.
+'''
 
 ### process_context_data 전용 fragment function ###
 
