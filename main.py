@@ -10,8 +10,9 @@ import src.data as data_module
 import src.train as train_module
 import src.models as model_module
 import joblib
+
 '''
-형동님 코드 리뷰 요청에서, 필요한 부분이 있다고 판단되어 추가하였습니다.
+영진님 코드 리뷰 요청에서, 필요한 부분이 있다고 판단되어 추가하였습니다.
 '''
 
 def main(args):
