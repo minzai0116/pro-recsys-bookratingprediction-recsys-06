@@ -1,5 +1,5 @@
 ######## 기본 베이스라인 실행 스크립트 ########
-# 예) $ bash run_baseline.sh
+# 예) $ bash scripts/run_baseline.sh
 # -c : --config / -m : --model / -w : --wandb / -r : --run_name
 
 python main.py  -c config/config_baseline.yaml  -m bert_rec  -w False  -r bert_rec

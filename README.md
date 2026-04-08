@@ -59,7 +59,7 @@ flowchart LR
 
 ### 2.3. EDA Snapshot
 
-<p align="center"><img width="700" src="tsne_clusters.png" alt="Book Rating Prediction EDA"></p>
+<p align="center"><img width="700" src="docs/assets/tsne_clusters.png" alt="Book Rating Prediction EDA"></p>
 
 ## 3. Result
 
@@ -81,13 +81,19 @@ flowchart LR
 ```text
 pro-recsys-bookratingprediction-recsys-06
 ├─ config/              # 모델별 실행/실험 설정
+├─ docs/
+│  ├─ assets/           # README에 사용하는 대표 이미지
+│  └─ eda-results/      # EDA 과정에서 생성된 시각화 결과
+├─ notebooks/           # 실험 및 분석 노트북
+├─ scripts/
+│  ├─ eda/              # EDA 보조 스크립트
+│  └─ run_baseline.sh   # 베이스라인 실행 스크립트
 ├─ src/
 │  ├─ data/             # 데이터 로딩, 분할, 전처리
 │  ├─ models/           # FM, DeepFM, CatBoost, BERT 등 모델 정의
 │  ├─ train/            # 학습 및 추론 로직
 │  ├─ loss/             # 커스텀 loss
 │  └─ ensembles/        # 앙상블 유틸
-├─ results/             # EDA 및 분석 결과물
 ├─ main.py              # 학습/추론 진입점
 └─ ensemble.py          # 앙상블 실행 스크립트
 ```
